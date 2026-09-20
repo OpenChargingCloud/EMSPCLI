@@ -1,0 +1,47 @@
+<Solution>
+  <Folder Name="/Dependencies/">
+    <Project Path="libs/EMSP/EMSP/EMSP.csproj" />
+    <Project Path="libs/EMSP/EMSPTests/EMSPTests.csproj" />
+  </Folder>
+  <Folder Name="/Dependencies/ChargyCore/">
+    <Project Path="libs/ChargyCore.NET/ChargyCore/ChargyCore.csproj" />
+    <Project Path="libs/ChargyCore.NET/ChargyCore.QRCodes/ChargyCore.QRCodes.csproj" />
+    <Project Path="libs/ChargyCore.NET/ChargyCoreTests/ChargyCoreTests.csproj" />
+    <Project Path="libs/ChargyCore.NET/ChargyVerify/ChargyVerify.csproj" />
+  </Folder>
+  <Folder Name="/Dependencies/DatexII/">
+    <Project Path="libs/WWCP_DatexII/WWCP_DatexII/WWCP_DatexII.csproj" />
+    <Project Path="libs/WWCP_DatexII/WWCP_DatexII_Adapter/WWCP_DatexII_Adapter.csproj" />
+    <Project Path="libs/WWCP_DatexII/WWCP_DatexII_Tests/WWCP_DatexII_Tests.csproj" />
+    <Project Path="libs/WWCP_DatexII/WWCP_DatexII_WebAPI/WWCP_DatexII_WebAPI.csproj" />
+  </Folder>
+  <Folder Name="/Dependencies/OCPI/">
+    <Project Path="libs/WWCP_OCPI/WWCP_OCPI_Common/WWCP_OCPI_Common.csproj" />
+    <Project Path="libs/WWCP_OCPI/WWCP_OCPIv2.1.1/WWCP_OCPIv2.1.1.csproj" />
+    <Project Path="libs/WWCP_OCPI/WWCP_OCPIv2.2.1/WWCP_OCPIv2.2.1.csproj" />
+    <Project Path="libs/WWCP_OCPI/WWCP_OCPIv2.3.0/WWCP_OCPIv2.3.0.csproj" />
+  </Folder>
+  <Folder Name="/Dependencies/OpenADR/">
+    <Project Path="libs/WWCP_OpenADR/WWCP_OpenADR/WWCP_OpenADR.csproj" />
+    <Project Path="libs/WWCP_OpenADR/WWCP_OpenADR_Node/WWCP_OpenADR_Node.csproj" />
+    <Project Path="libs/WWCP_OpenADR/WWCP_OpenADR_Tests/WWCP_OpenADR_Tests.csproj" />
+  </Folder>
+  <Folder Name="/Dependencies/OpenChargingCloud/">
+    <Project Path="libs/WWCP_Core/WWCP_Core/WWCP_Core.csproj" />
+    <Project Path="libs/WWCP_Core/WWCP_CoreData/WWCP_CoreData.csproj" />
+    <Project Path="libs/WWCP_Core/WWCP_Core_Tests/WWCP_Core_Tests.csproj" />
+    <Project Path="libs/WWCP_Core/WWCP_OverlayNetworking/WWCP_OverlayNetworking.csproj" />
+    <Project Path="libs/WWCP_Core/WWCP_OverlayNetworking2/WWCP_OverlayNetworking2.csproj" />
+    <Project Path="libs/WWCP_Core/WWCP_OverlayNetworking_Tests/WWCP_OverlayNetworking_Tests.csproj" />
+  </Folder>
+  <Folder Name="/Dependencies/Vanaheimr/">
+    <Project Path="libs/Hermod/Hermod/Hermod.csproj" />
+    <Project Path="libs/Hermod/HermodTests/HermodTests.csproj" />
+    <Project Path="libs/MCP/MCP/MCP.csproj" />
+    <Project Path="libs/Norn/Norn/Norn.csproj" />
+    <Project Path="libs/Norn/NornTests/NornTests.csproj" />
+    <Project Path="libs/Styx/Styx/Styx.csproj" />
+    <Project Path="libs/Styx/StyxTests/StyxTests.csproj" />
+  </Folder>
+  <Project Path="EMSPCLI/EMSPCLI.csproj" />
+</Solution>
