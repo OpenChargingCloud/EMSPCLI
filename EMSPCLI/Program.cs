@@ -129,6 +129,12 @@ namespace cloud.charging.open.EMSP.CLI
             Console.WriteLine($"                    keeps them in files of its own below {Provider.OCPIDirectoryName}/ beside it, where the");
             Console.WriteLine("                    web interface puts them.");
             Console.WriteLine();
+            Console.WriteLine("Contracts:");
+            Console.WriteLine($"  The MO root, its two sub-CAs and every contract certificate issued to a driver live");
+            Console.WriteLine($"  below {Provider.PKIDirectoryName}/ beside the configuration file, made at the first start and kept. A");
+            Console.WriteLine("  \"contracts\" section of the configuration file may switch the sign-up of drivers off");
+            Console.WriteLine("  (\"selfSignUp\": false) and change how long a contract is good for (\"validityDays\").");
+            Console.WriteLine();
             Console.WriteLine("Log:");
             Console.WriteLine("  -v, --verbose     write every entry to the console, down to the debug ones");
             Console.WriteLine("  -q, --quiet       write only warnings and worse");
@@ -322,6 +328,9 @@ namespace cloud.charging.open.EMSP.CLI
                 Console.WriteLine($"  OCPI party     {emsp.PartyIdText} ({emsp.BusinessDetails.Name})");
                 Console.WriteLine($"  OCPI versions  {emsp.OCPIVersionsURL} ({String.Join(", ", emsp.OCPIVersions.Select(version => version.Label))})");
                 Console.WriteLine($"  roaming        {emsp.RemotePartyCount} partner(s), {emsp.TokenCount} token(s) in {emsp.OCPIDirectory}");
+                Console.WriteLine($"  MO root        {emsp.ContractCA.RootTrustPath}{(emsp.ContractCA.WasCreated ? " (made just now)" : "")}");
+                Console.WriteLine($"  contracts      {emsp.ContractCount} issued, {emsp.ContractValidity.TotalDays:F0} days each, in {emsp.Contracts.Directory}");
+                Console.WriteLine($"  drivers        {(emsp.SelfSignUpEnabled ? $"sign up at {emsp.SignUpURL}" : "sign-up switched off; accounts are made by an administrator")}");
                 Console.WriteLine($"  name servers   {(emsp.DNSEnabled ? String.Join(", ", emsp.DNSClient.DNSServers) : "switched off")}");
                 Console.WriteLine($"  time server    {emsp.NTSClient.Hostname}{(emsp.NTSEnabled ? "" : " (switched off)")}");
 

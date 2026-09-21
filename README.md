@@ -66,6 +66,16 @@ is peered with, the tokens it issued and what the partners pushed are kept by
 the OCPI library in files of its own below `ocpi/` beside it, where the web
 interface puts them.
 
+A driver signs up at http://127.0.0.1:2355/signup and asks the EMSP for a
+contract certificate: the browser makes the key pair and never lets it go,
+the EMSP signs a certificate to a fresh eMAID below its own MO root, and the
+driver downloads a PKCS#12 for the vehicle and `mo-root.pem` for whoever has
+to believe it - the vehicle, and the charge point operator. The MO root and
+its two sub-CAs are made at the first start and kept below `pki/` beside the
+solution, together with every contract issued; the console names the file to
+hand out at every start. How this works, and what a `contracts` section of
+the configuration file may say, is in [libs/EMSP](libs/EMSP).
+
 `dotnet run --project EMSPCLI -- --help` lists the rest: `--port`, `--any`,
 `--accounts <dir>`, `--frontend <dir>`, `--config <file>`, `--verbose`,
 `--quiet`, `--no-trace`.
@@ -83,8 +93,10 @@ without rebuilding the C# side.
 | `EMSPCLI/` | the command line: switches, and what the console says at a start |
 | `libs/EMSP/EMSP/` | the EMSP itself - its configuration, its log, its JSON API, its OCPI bindings, its web interface |
 | `libs/EMSP/EMSP/Frontend/` | the web interface: TypeScript and SCSS, bundled by webpack |
-| `libs/EMSP/EMSPTests/` | what an EMSP does when a browser or a CPO talks to it |
+| `libs/EMSP/EMSP/Contracts/` | the MO root and its sub-CAs, the signing of contracts, the eMAID and its check digit |
+| `libs/EMSP/EMSPTests/` | what an EMSP does when a browser, a driver or a CPO talks to it |
 | `libs/WWCP_OCPI/` | the protocol: OCPI 2.1.1, 2.2.1 and 2.3.0 |
+| `libs/WWCP_ISO15118/` | the ISO 15118 certificate profiles the MO root is built to |
 
 The command line is this program's vocabulary and nothing else. What an EMSP
 *is*, and what it does, lives in `libs/EMSP`.

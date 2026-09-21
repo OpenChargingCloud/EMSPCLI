@@ -15,6 +15,10 @@
     <Project Path="libs/WWCP_DatexII/WWCP_DatexII_Tests/WWCP_DatexII_Tests.csproj" />
     <Project Path="libs/WWCP_DatexII/WWCP_DatexII_WebAPI/WWCP_DatexII_WebAPI.csproj" />
   </Folder>
+  <Folder Name="/Dependencies/ISO15118/">
+    <Project Path="libs/WWCP_ISO15118/WWCP_ISO15118_PKI/WWCP_ISO15118_PKIBuilder/WWCP_ISO15118_PKIBuilder.csproj" />
+    <Project Path="libs/WWCP_ISO15118/WWCP_ISO15118_PKI/WWCP_ISO15118_PKIBuilderTests/WWCP_ISO15118_PKIBuilderTests.csproj" />
+  </Folder>
   <Folder Name="/Dependencies/OCPI/">
     <Project Path="libs/WWCP_OCPI/WWCP_OCPI_Common/WWCP_OCPI_Common.csproj" />
     <Project Path="libs/WWCP_OCPI/WWCP_OCPIv2.1.1/WWCP_OCPIv2.1.1.csproj" />

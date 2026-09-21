@@ -275,3 +275,10 @@ configuration.json
 # the partners pushed: the OCPI library's own files, kept beside the
 # configuration. Records of this particular installation, not of the source.
 /ocpi/
+
+# The mobility operator root this EMSP makes for itself at the first start,
+# the two sub-CAs below it - private keys, all three - and every contract
+# certificate it issued to a driver. Made once and kept: a root made afresh
+# would invalidate every contract, so this is a property of the installation
+# and never of the source.
+/pki/
