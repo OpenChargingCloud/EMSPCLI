@@ -119,7 +119,7 @@ namespace cloud.charging.open.EMSP.CLI
             Console.WriteLine($"                      start for the user '{Provider.DefaultAdminUser}' and shown once.");
             Console.WriteLine();
             Console.WriteLine("Configuration:");
-            Console.WriteLine("  --config <file>   where the name servers, the time server and the OCPI identity of");
+            Console.WriteLine("  --config <file>   where the name servers, the time servers and the OCPI identity of");
             Console.WriteLine($"                    this EMSP live (default: {EMSPConfigFile.DefaultFileName} below the repository");
             Console.WriteLine("                    root). Without the file the EMSP runs on the system defaults and is");
             Console.WriteLine($"                    {OCPIConfiguration.DefaultCountryCode}-{OCPIConfiguration.DefaultPartyId} in OCPI; the DNS and NTS pages of the web interface write");
@@ -322,6 +322,28 @@ namespace cloud.charging.open.EMSP.CLI
                 Console.WriteLine($"  event stream   {emsp.APIURL}v1/events");
                 Console.WriteLine($"  HTTPExt API    {emsp.WebInterfaceURL}{Provider.ExtAPIPath.ToString().Trim('/')}/");
                 Console.WriteLine($"  frontend from  {emsp.Frontend.Description}");
+
+                var builtFrom = BuiltFrom.Repositories.ToArray();
+
+                if (builtFrom.Length > 0)
+                {
+
+                    // One line each, and the whole hash. This is meant to be read
+                    // out of a bug report and pasted into a checkout, and an
+                    // abbreviation is a thing somebody then has to guess the rest
+                    // of. The column is as wide as the longest name rather than a
+                    // number picked today, so a repository joining later still
+                    // lines up.
+                    var width = builtFrom.Max(repository => repository.Repository!.Length);
+
+                    for (var i = 0; i < builtFrom.Length; i++)
+                        Console.WriteLine((i == 0 ? "  built from     " : "                 ") +
+                                          builtFrom[i].Repository!.PadRight(width) +
+                                          "  " +
+                                          builtFrom[i].Commit);
+
+                }
+
                 Console.WriteLine($"  configuration  {emsp.ConfigFile.Path}");
                 Console.WriteLine($"  accounts       {emsp.ExtAPI.Users.Count()} user(s) in {emsp.AccountsPath}");
                 Console.WriteLine($"  sign in at     {emsp.WebInterfaceURL}{Provider.ExtAPIPath.ToString().Trim('/')}/login");
@@ -332,7 +354,32 @@ namespace cloud.charging.open.EMSP.CLI
                 Console.WriteLine($"  contracts      {emsp.ContractCount} issued, {emsp.ContractValidity.TotalDays:F0} days each, in {emsp.Contracts.Directory}");
                 Console.WriteLine($"  drivers        {(emsp.SelfSignUpEnabled ? $"sign up at {emsp.SignUpURL}" : "sign-up switched off; accounts are made by an administrator")}");
                 Console.WriteLine($"  name servers   {(emsp.DNSEnabled ? String.Join(", ", emsp.DNSClient.DNSServers) : "switched off")}");
-                Console.WriteLine($"  time server    {emsp.NTSClient.Hostname}{(emsp.NTSEnabled ? "" : " (switched off)")}");
+
+                #region The time servers
+
+                var bands = emsp.TimeSources.Bands();
+                var asked = bands.SelectMany(band => band).ToArray();
+
+                if (asked.Length <= 1)
+                    Console.WriteLine($"  time server    {emsp.NTSClient.Hostname}{(emsp.NTSEnabled ? "" : " (switched off)")}");
+
+                else
+                {
+
+                    // One line per band, because a band is the unit that is
+                    // asked at once - putting two bands on one line would read
+                    // as six equal servers when it is two and then four.
+                    for (var i = 0; i < bands.Count; i++)
+                        Console.WriteLine((i == 0 ? "  time servers   " : "                 ") +
+                                          String.Join(", ", bands[i].Select(source => source.Hostname.ToString())) +
+                                          (bands.Count > 1 ? $"   (priority {bands[i][0].Priority})" : ""));
+
+                    Console.WriteLine($"                 at least {emsp.TimeSources.MinServers} of them must answer" +
+                                      (emsp.NTSEnabled ? "" : " - and NTS is switched off"));
+
+                }
+
+                #endregion
 
                 if (emsp.GeneratedPassword is not null)
                 {
@@ -340,7 +387,13 @@ namespace cloud.charging.open.EMSP.CLI
                     Console.WriteLine("  ┌─ First start: there were no accounts, so one was made up for you ─────────");
                     Console.WriteLine($"  │  user      {Provider.DefaultAdminUser}");
                     Console.WriteLine($"  │  password  {emsp.GeneratedPassword}");
-                    Console.WriteLine("  │  It is shown here once and kept only as a hash. Write it down.");
+                    // Named rather than called "a hash", and read from the
+                    // implementation rather than typed here, so the box cannot
+                    // end up describing a scheme this EMSP no longer uses.
+                    // "i=600000" is also how passwords.db writes it down, which
+                    // is where somebody checking this will look.
+                    Console.WriteLine($"  │  It is shown here once and kept only as a {SecurePassword.PBKDF2SHA256} hash");
+                    Console.WriteLine($"  │  over {SecurePassword.DefaultIterations} iterations. Write it down.");
                     Console.WriteLine("  └───────────────────────────────────────────────────────────────────────────");
                 }
 

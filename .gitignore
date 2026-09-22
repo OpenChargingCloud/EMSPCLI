@@ -266,7 +266,7 @@ __pycache__/
 # quietly swallow a source folder of the same name.
 /accounts/
 
-# What a running EMSP is configured as: its name servers, its time server and
+# What a running EMSP is configured as: its name servers, its time servers and
 # who it is in OCPI. A property of this particular installation, not of the
 # source.
 configuration.json
