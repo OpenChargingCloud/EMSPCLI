@@ -68,6 +68,22 @@ jobs:
         with:
           node-version: '24.x'
 
+      # The TypeScript compiler WWCP_Core pins, installed once
+      # before the build rather than by it. Each of its projects runs
+      # "npm ci" in the shared repository root when node_modules is missing,
+      # and several of them do so at the same moment in a parallel build - so
+      # one "npm ci" wipes node_modules while another project's tsc is already
+      # reading lib.dom.d.ts out of it, and fails with "Cannot find name
+      # 'document'" in a tsconfig that plainly asks for DOM. Invisible on a
+      # machine that has built once, and exactly what a fresh runner is.
+      # CSMSCLI run 35817016929, Windows leg: WWCP_OCPP there, the same pattern here.
+      - name: The pinned TypeScript compiler
+        shell: bash
+        run: |
+          for lock in libs/*/package-lock.json; do
+              npm ci --prefix "$(dirname "$lock")"
+          done
+
       - name: Build
         run: dotnet build EMSPCLI.slnx --configuration Release
 
@@ -250,6 +266,23 @@ jobs:
             done < "$RUNNER_TEMP/pinned.txt"
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+
+      # The TypeScript compiler WWCP_Core pins, installed once
+      # before the build rather than by it. Each of its projects runs
+      # "npm ci" in the shared repository root when node_modules is missing,
+      # and several of them do so at the same moment in a parallel build - so
+      # one "npm ci" wipes node_modules while another project's tsc is already
+      # reading lib.dom.d.ts out of it, and fails with "Cannot find name
+      # 'document'" in a tsconfig that plainly asks for DOM. Invisible on a
+      # machine that has built once, and exactly what a fresh runner is.
+      # CSMSCLI run 35817016929, Windows leg: WWCP_OCPP there, the same pattern here.
+      - name: The pinned TypeScript compiler, as the tips pin them
+        continue-on-error: true
+        shell: bash
+        run: |
+          for lock in libs/*/package-lock.json; do
+              npm ci --prefix "$(dirname "$lock")"
+          done
 
       - name: Build against the tips (informational)
         id: build
