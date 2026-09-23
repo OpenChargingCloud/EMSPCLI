@@ -1,5 +1,8 @@
 # EMSP - E-Mobility Service Provider
 
+[![CI](https://github.com/OpenChargingCloud/EMSPCLI/actions/workflows/ci.yml/badge.svg)](https://github.com/OpenChargingCloud/EMSPCLI/actions/workflows/ci.yml)
+[![Nightly](https://github.com/OpenChargingCloud/EMSPCLI/actions/workflows/nightly.yml/badge.svg)](https://github.com/OpenChargingCloud/EMSPCLI/actions/workflows/nightly.yml)
+
 This software implements an EV roaming E-Mobility Service Provider: the other
 end of every OCPI roaming agreement, the thing the charge point operators are
 peered with and push their locations, tariffs, sessions and charge detail
@@ -97,6 +100,7 @@ without rebuilding the C# side.
 | `libs/EMSP/EMSPTests/` | what an EMSP does when a browser, a driver or a CPO talks to it |
 | `libs/WWCP_OCPI/` | the protocol: OCPI 2.1.1, 2.2.1 and 2.3.0 |
 | `libs/WWCP_ISO15118/` | the ISO 15118 certificate profiles the MO root is built to |
+| `.github/workflows/` | what runs on every push, and what runs at night |
 
 The command line is this program's vocabulary and nothing else. What an EMSP
 *is*, and what it does, lives in `libs/EMSP`.
