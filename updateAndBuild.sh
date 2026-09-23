@@ -2,10 +2,9 @@
 #
 # Pull everything and build it.
 #
-# The ISO 15118 schemas are not in any of these repositories and are not
-# fetched here either - that is a licence you accept yourself, once:
-#
-#   bash libs/WWCP_ISO15118/tools/download-schemas.sh
+# Nothing has to be fetched by hand first: the only part of the ISO 15118
+# repository this solution builds is the PKI builder, which does not need ISO's
+# schemas.
 
 set -e
 
