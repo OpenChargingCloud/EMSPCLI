@@ -86,7 +86,8 @@ jobs:
       # — EMSP.csproj runs "npm ci" and "npm run build" and then embeds dist/ as
       # assembly resources — and WWCP_Core compiles TypeScript with a compiler
       # pinned in its own package.json. So Node is not optional on either leg.
-      # package.json asks for 22 or newer.
+      # 24.x: the frontend's tests are run by node itself directly on .ts
+      # files, which needs a Node new enough to strip types without being asked.
       - uses: actions/setup-node@v7
         with:
           node-version: '24.x'
@@ -97,14 +98,20 @@ jobs:
       - name: Build
         run: dotnet build EMSPCLI.slnx --configuration Release
 
-      # What the .NET build does not cover: webpack type-checks only the modules
-      # it can reach from the entry point. node_modules is already there — the
-      # build put it there — so this costs seconds. One leg, because TypeScript
-      # does not know which platform it is on.
-      - name: The web interface (type checks)
+      # What the .NET build does not cover. webpack type-checks the modules it
+      # can reach from the entry point, which leaves out the test files; and the
+      # frontend's own tests - what the NTS page tells the EMSP when a time
+      # server is added, edited or deleted - are run by node, so nothing in a
+      # dotnet build would ever execute them. node_modules is already there -
+      # the build put it there - so this costs seconds. One leg, because
+      # TypeScript does not know which platform it is on.
+      - name: The web interface (type checks and its own tests)
         if: matrix.leg == 'debian-13-container'
         working-directory: libs/EMSP/EMSP/Frontend
-        run: npm run typecheck
+        run: |
+          npm run typecheck
+          npm run typecheck:test
+          npm test
 
       # The EMSP's own tests: the configuration it reads and writes, the
       # accounts, OCPI, the contract certificates, the time-source group.
