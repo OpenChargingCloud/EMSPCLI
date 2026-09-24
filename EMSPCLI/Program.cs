@@ -360,18 +360,24 @@ namespace cloud.charging.open.EMSP.CLI
                 var bands = emsp.TimeSources.Bands();
                 var asked = bands.SelectMany(band => band).ToArray();
 
+                // The group's one server where it has one, and trimmed as the
+                // servers of a longer list are below: this used to be the host of
+                // the single client the detailed test starts from, with its root
+                // dot, which only showed with a group of one.
                 if (asked.Length <= 1)
-                    Console.WriteLine($"  time server    {emsp.NTSClient.Hostname}{(emsp.NTSEnabled ? "" : " (switched off)")}");
+                    Console.WriteLine($"  time server    {(asked.Length == 1 ? asked[0].Hostname : emsp.NTSClient.Hostname).Trimmed}{(emsp.NTSEnabled ? "" : " (switched off)")}");
 
                 else
                 {
 
                     // One line per band, because a band is the unit that is
                     // asked at once - putting two bands on one line would read
-                    // as six equal servers when it is two and then four.
+                    // as six equal servers when it is two and then four. The
+                    // names as they are read, without the root's dot, as the log
+                    // names them.
                     for (var i = 0; i < bands.Count; i++)
                         Console.WriteLine((i == 0 ? "  time servers   " : "                 ") +
-                                          String.Join(", ", bands[i].Select(source => source.Hostname.ToString())) +
+                                          String.Join(", ", bands[i].Select(source => source.Hostname.Trimmed)) +
                                           (bands.Count > 1 ? $"   (priority {bands[i][0].Priority})" : ""));
 
                     Console.WriteLine($"                 at least {emsp.TimeSources.MinServers} of them must answer" +
