@@ -89,11 +89,44 @@ libs/EMSP/EMSP/Frontend/dist`: a reload in the browser then shows the change,
 without rebuilding the C# side.
 
 
+### Typing at it
+
+Once it is up, the console is a prompt rather than a place that only scrolls:
+
+```
+EMSP> syncNTS
+succeeded after 809 ms: 4 of 4 server(s) answered (2 required), offset +1015.4 ms, spread 2.0 ms
+  ptbtime1.ptb.de  +1014.8 ms, round trip 50.7 ms, key exchange new
+  ptbtime2.ptb.de  +1015.9 ms, round trip 50.8 ms, key exchange new
+  ptbtime3.ptb.de  +1014.9 ms, round trip 50.6 ms, key exchange new
+  ptbtime4.ptb.de  +1016.8 ms, round trip 50.5 ms, key exchange new
+```
+
+`help` lists what can be typed, `quit` leaves, **Tab** completes and **↑**
+walks back through what was typed before. `syncNTS` is **Sync now** on the
+**NTS** page, typed: the same group of time servers is asked, the same entries
+go into the log, and the same result is left behind for the page to show. The
+one entry that differs says who asked - the page names the account that
+pressed the button, the prompt says it was somebody at the command line.
+`syncNTS <time server>` is that server's **Test** button: every step with when
+it happened, the TLS certificate chain down to its root CA among them. Only a
+server of this EMSP is tested, and Tab offers them. Neither steps the clock.
+
+The log keeps writing while you type, from whichever thread did the thing it is
+reporting, and your half-typed line survives it: the line is taken off the
+screen, the entry is written whole, and the line comes back with the cursor
+where it was. A line wider than the console is shown through a window onto it.
+
+Where there is no terminal - from a script, under a service manager, in CI, or
+with the output going into a file or through `| tee` - there is no prompt, and
+the EMSP runs until it is stopped, exactly as it did before.
+
+
 ### Where things are
 
 | | |
 |---|---|
-| `EMSPCLI/` | the command line: switches, and what the console says at a start |
+| `EMSPCLI/` | the command line: switches, what the console says at a start, and the prompt with its commands in `CLI/` |
 | `libs/EMSP/EMSP/` | the EMSP itself - its configuration, its log, its JSON API, its OCPI bindings, its web interface |
 | `libs/EMSP/EMSP/Frontend/` | the web interface: TypeScript and SCSS, bundled by webpack |
 | `libs/EMSP/EMSP/Contracts/` | the MO root and its sub-CAs, the signing of contracts, the eMAID and its check digit |
