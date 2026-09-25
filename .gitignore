@@ -282,3 +282,19 @@ configuration.json
 # would invalidate every contract, so this is a property of the installation
 # and never of the source.
 /pki/
+
+# The certificate store of the node below the EMSP, beside the configuration:
+# whatever is imported there arrives with its private key. Anchored like the
+# accounts - and ignored rather than merely left untracked, because the build
+# stamp calls a tree dirty when git reports anything at all, and a directory
+# the EMSP writes at every start would mark every build dirty.
+/certificates/
+
+# What this EMSP wrote down about its own runs. One file per day, and a record
+# of what this machine did rather than of what the source says - the same
+# reason as the directories above, and the same anchor.
+#
+# "*.log" further up already covers the files; this covers the directory, so
+# that the build stamp does not start calling every tree dirty the first time
+# somebody puts something else in there.
+/logs/

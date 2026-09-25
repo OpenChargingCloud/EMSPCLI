@@ -22,7 +22,10 @@ using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 using cloud.charging.open.EMSP.CommandLine;
 using cloud.charging.open.EMSP.Configuration;
-using cloud.charging.open.EMSP.Logging;
+
+using cloud.charging.open.protocols.WWCP.Node;
+using cloud.charging.open.protocols.WWCP.Node.Configuration;
+using cloud.charging.open.protocols.WWCP.Node.Logging;
 
 // Inside this namespace "EMSP" is the namespace and not the class, so the
 // class needs a name of its own here.
@@ -105,7 +108,7 @@ namespace cloud.charging.open.EMSP.CLI
         {
             Console.WriteLine("Usage: EMSPCLI [--port <number>] [--any] [--frontend <dist directory>]");
             Console.WriteLine("               [--config <file>] [--accounts <directory>]");
-            Console.WriteLine("               [--verbose | --quiet] [--no-trace]");
+            Console.WriteLine("               [--verbose | --quiet] [--no-trace] [--log-file <dir>] [--no-log-file]");
             Console.WriteLine();
             Console.WriteLine("Web interface:");
             Console.WriteLine($"  --port <number>   TCP port to listen on (default: {Provider.DefaultHTTPPort})");
@@ -122,7 +125,7 @@ namespace cloud.charging.open.EMSP.CLI
             Console.WriteLine();
             Console.WriteLine("Configuration:");
             Console.WriteLine("  --config <file>   where the name servers, the time servers and the OCPI identity of");
-            Console.WriteLine($"                    this EMSP live (default: {EMSPConfigFile.DefaultFileName} below the repository");
+            Console.WriteLine($"                    this EMSP live (default: {WWCPConfigFile.DefaultFileName} below the repository");
             Console.WriteLine("                    root). Without the file the EMSP runs on the system defaults and is");
             Console.WriteLine($"                    {OCPIConfiguration.DefaultCountryCode}-{OCPIConfiguration.DefaultPartyId} in OCPI; the DNS and NTS pages of the web interface write");
             Console.WriteLine("                    the name and time servers into it, and every change there takes");
@@ -143,6 +146,13 @@ namespace cloud.charging.open.EMSP.CLI
             Console.WriteLine("      --no-trace    do not pick up what the libraries below write with DebugX");
             Console.WriteLine();
             Console.WriteLine("Whatever the console shows, the web interface shows the whole log under 'Logs'.");
+            Console.WriteLine();
+            Console.WriteLine($"  --log-file <dir>  where the log files go (default: {Provider.DefaultLogPath}/ below the repository");
+            Console.WriteLine("                    root): one file per UTC day, every entry down to the debug");
+            Console.WriteLine("                    ones, and nothing is ever deleted.");
+            Console.WriteLine("      --no-log-file do not write one. Then what the console did not show, and");
+            Console.WriteLine($"                    what falls out of the web interface's last {EventLog.DefaultCapacity} entries, is");
+            Console.WriteLine("                    gone.");
             Console.WriteLine();
             Console.WriteLine("Once it is up, the console is a prompt: 'help' lists what can be typed there,");
             Console.WriteLine("Tab completes it, and 'quit' or Ctrl+C stops the EMSP. Started where there is");
@@ -168,6 +178,8 @@ namespace cloud.charging.open.EMSP.CLI
             var      verbose         = false;
             var      quiet           = false;
             var      noTrace         = false;
+            String?  logPath         = null;
+            var      noLogFile       = false;
 
             for (var i = 0; i < Arguments.Length; i++)
             {
@@ -229,6 +241,18 @@ namespace cloud.charging.open.EMSP.CLI
                         noTrace = true;
                         break;
 
+                    case "--log-file":
+                        if (!TryTakeValue(Arguments, ref i, out logPath))
+                        {
+                            Console.Error.WriteLine("Missing directory after --log-file!");
+                            return 2;
+                        }
+                        break;
+
+                    case "--no-log-file":
+                        noLogFile = true;
+                        break;
+
                     case "-h":
                     case "--help":
                         PrintUsage();
@@ -288,8 +312,8 @@ namespace cloud.charging.open.EMSP.CLI
 
                            AccountsPath:     accountsPath ?? Path.Combine(RepositoryRoot(), Provider.DefaultAccountsPath),
 
-                           ConfigFile:       new EMSPConfigFile(
-                                                 configFilePath ?? Path.Combine(RepositoryRoot(), EMSPConfigFile.DefaultFileName)
+                           ConfigFile:       new WWCPConfigFile(
+                                                 configFilePath ?? Path.Combine(RepositoryRoot(), WWCPConfigFile.DefaultFileName)
                                              ),
 
                            Frontend:         frontend,
@@ -297,6 +321,13 @@ namespace cloud.charging.open.EMSP.CLI
                            ConsoleLogLevel:  verbose ? LogLevel.Debug
                                                  : quiet ? LogLevel.Warning
                                                  : LogLevel.Info,
+
+                           // Below the repository root rather than beside the
+                           // binary, for the reason the accounts are: bin/ is
+                           // what the next "dotnet clean" empties.
+                           LogPath:          noLogFile
+                                                 ? null
+                                                 : logPath ?? Path.Combine(RepositoryRoot(), Provider.DefaultLogPath),
 
                            BridgeDebugLog:   !noTrace
 
@@ -319,7 +350,27 @@ namespace cloud.charging.open.EMSP.CLI
             await using (emsp)
             {
 
-                await emsp.Start();
+                try
+                {
+                    await emsp.Start();
+                }
+                catch (PortUnavailableException problem)
+                {
+
+                    // What the node says about a port it cannot have, rather
+                    // than a stack trace under the operating system's own words
+                    // for a port in use - in German on a German Windows, with
+                    // the port named nowhere.
+                    Console.Error.WriteLine($"The EMSP could not start: {problem.Message}.");
+                    Console.Error.WriteLine("Another copy of this EMSP already running is the usual answer. " +
+                                            "Stop it, or give this one another port with --port <number>.");
+
+                    if (verbose)
+                        Console.Error.WriteLine(problem);
+
+                    return 1;
+
+                }
 
                 #region What somebody who just started this needs to know
 
@@ -352,6 +403,7 @@ namespace cloud.charging.open.EMSP.CLI
                 }
 
                 Console.WriteLine($"  configuration  {emsp.ConfigFile.Path}");
+                Console.WriteLine($"  log files      {emsp.LogPath ?? "none (--no-log-file)"}");
                 Console.WriteLine($"  accounts       {emsp.ExtAPI.Users.Count()} user(s) in {emsp.AccountsPath}");
                 Console.WriteLine($"  sign in at     {emsp.WebInterfaceURL}{Provider.ExtAPIPath.ToString().Trim('/')}/login");
                 Console.WriteLine($"  OCPI party     {emsp.PartyIdText} ({emsp.BusinessDetails.Name})");

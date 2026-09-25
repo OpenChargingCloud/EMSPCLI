@@ -81,12 +81,24 @@ the configuration file may say, is in [libs/EMSP](libs/EMSP).
 
 `dotnet run --project EMSPCLI -- --help` lists the rest: `--port`, `--any`,
 `--accounts <dir>`, `--frontend <dir>`, `--config <file>`, `--verbose`,
-`--quiet`, `--no-trace`.
+`--quiet`, `--no-trace`, `--log-file <dir>`, `--no-log-file`.
 
 While working on the web interface, run `npm run watch` in
 `libs/EMSP/EMSP/Frontend` and start the EMSP with `--frontend
 libs/EMSP/EMSP/Frontend/dist`: a reload in the browser then shows the change,
 without rebuilding the C# side.
+
+
+### The log
+
+Everything that happens is written three times over, because the three answer
+different questions. The **console** shows what is going on to whoever is
+watching, at the level `--verbose` and `--quiet` choose. The **Logs** page
+keeps the last two thousand entries for whoever asks, and loses them when the
+process ends. And `logs/` beside the solution keeps one file per day,
+`emsp-2026-09-25.log`, every entry down to the debug ones, for the afternoon
+somebody asks what happened last night - `--log-file <dir>` puts it elsewhere,
+`--no-log-file` leaves it out, and nothing in it is ever deleted.
 
 
 ### Typing at it
@@ -127,10 +139,11 @@ the EMSP runs until it is stopped, exactly as it did before.
 | | |
 |---|---|
 | `EMSPCLI/` | the command line: switches, what the console says at a start, and the prompt with its commands in `CLI/` |
-| `libs/EMSP/EMSP/` | the EMSP itself - its configuration, its log, its JSON API, its OCPI bindings, its web interface |
+| `libs/EMSP/EMSP/` | the EMSP itself - its sections of the configuration file, its roles, its JSON API, its OCPI bindings, its web interface |
 | `libs/EMSP/EMSP/Frontend/` | the web interface: TypeScript and SCSS, bundled by webpack |
 | `libs/EMSP/EMSP/Contracts/` | the MO root and its sub-CAs, the signing of contracts, the eMAID and its check digit |
 | `libs/EMSP/EMSPTests/` | what an EMSP does when a browser, a driver or a CPO talks to it |
+| `libs/WWCP_Node/` | the node below the EMSP: the log, the configuration file, name resolution and the time, the certificate store, the accounts and the web server - what an EMSP has in common with a vehicle and a charging station |
 | `libs/WWCP_OCPI/` | the protocol: OCPI 2.1.1, 2.2.1 and 2.3.0 |
 | `libs/WWCP_ISO15118/` | the ISO 15118 certificate profiles the MO root is built to |
 | `.github/workflows/` | what runs on every push, and what runs at night |

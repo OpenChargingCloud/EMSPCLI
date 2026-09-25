@@ -31,3 +31,9 @@
 [submodule "libs/EMSP"]
 	path = libs/EMSP
 	url = https://github.com/OpenChargingCloud/EMSP.git
+[submodule "libs/WWCP_Node"]
+	path = libs/WWCP_Node
+	url = https://github.com/OpenChargingCloud/WWCP_Node.git
+[submodule "libs/Urdr"]
+	path = libs/Urdr
+	url = https://github.com/Vanaheimr/Urdr.git
