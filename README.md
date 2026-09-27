@@ -59,7 +59,10 @@ At the first start there are no accounts, so the EMSP makes one up for the user
 solution and prints the password once. Then open http://127.0.0.1:2355/ and
 sign in. Signing in happens at Hermod's HTTPExt API, mounted under `/ext` - the
 same door the other components use, which is what lets one sign-in cover
-several of them when they share a server.
+several of them when they share a server. What an account may do there is a
+matter of its roles - a driver, the operator (`emsp`), a viewer, the
+administrators - and the configuration file may add roles of its own; see
+[libs/EMSP](libs/EMSP).
 
 A roaming partner is given one URL, http://127.0.0.1:2355/ext/versions, and
 finds everything else of OCPI from it. Who this EMSP is - `DE-GDF` unless
@@ -81,7 +84,8 @@ the configuration file may say, is in [libs/EMSP](libs/EMSP).
 
 `dotnet run --project EMSPCLI -- --help` lists the rest: `--port`, `--any`,
 `--accounts <dir>`, `--frontend <dir>`, `--config <file>`, `--verbose`,
-`--quiet`, `--no-trace`, `--log-file <dir>`, `--no-log-file`.
+`--quiet`, `--no-trace`, `--log-file <dir>`, `--no-log-file`, and the four
+of the certificate store below.
 
 While working on the web interface, run `npm run watch` in
 `libs/EMSP/EMSP/Frontend` and start the EMSP with `--frontend
@@ -98,7 +102,16 @@ keeps the last two thousand entries for whoever asks, and loses them when the
 process ends. And `logs/` beside the solution keeps one file per day,
 `emsp-2026-09-25.log`, every entry down to the debug ones, for the afternoon
 somebody asks what happened last night - `--log-file <dir>` puts it elsewhere,
-`--no-log-file` leaves it out, and nothing in it is ever deleted.
+`--no-log-file` leaves it out, and nothing in it is ever deleted. Which
+directory it is, the start says under `log files`.
+
+Below it, `metrological/` is the EMSP's log book: what bears on the time it
+stamps things with and on what it trusts. Every start, every synchronisation
+with what each time server answered, what was news about a time server's
+certificate, every change of its time servers and of its certificates, one
+line after the other, each pointing back at the one before and signed with a
+key kept beside them. A file per day, never thinned out. Without log files
+there is no log book either.
 
 
 ### Typing at it
@@ -132,6 +145,57 @@ where it was. A line wider than the console is shown through a window onto it.
 Where there is no terminal - from a script, under a service manager, in CI, or
 with the output going into a file or through `| tee` - there is no prompt, and
 the EMSP runs until it is stopped, exactly as it did before.
+
+
+### Certificates
+
+Everything this EMSP believes, everything it presents and every server it
+recognises lives in one store, `certificates/` beside the configuration file -
+so beside the solution unless `--config` says otherwise - and is managed on the
+**Certificates** page or from the command line. The store is the directory:
+one file per certificate below it, and an `index.json` recording what a file
+cannot say about itself: what somebody calls it, whether it is switched on
+and - for a TLS root or a server certificate - what it is kept for. So a store
+copied to another machine arrives complete, and a lost index costs labels,
+switches and usages rather than certificates.
+
+A **tlsRoot** says which time server and which name server over TLS or HTTPS
+may be believed, beside the roots of the machine the EMSP runs on - and is told
+what it is for, `nts`, `dns` or both, because a root kept for the name servers
+alone vouches for no time. A **tlsServer** is a server's own certificate, kept
+so that the server can be held to it by its fingerprint. Holding a server to a
+certificate or a root is said on the **NTS client** and **DNS client** pages:
+a server's dialog takes the fingerprints, offers the one it showed last and
+the ones the store keeps for it, and says what a mismatch comes to and whether
+it is held to what it is first believed with. What every server was last
+believed with is kept in `known-servers.json` beside the configuration file -
+fingerprints and nothing else - so that another certificate is noticed where a
+server is held to none.
+
+The store keeps the three roots of Plug & Charge as well - `v2gRoot`, `moRoot`
+and `oemRoot`, kept apart because one bag of roots would let an OEM root vouch
+for a contract - and a `clientRoot` and a `tlsIdentity`, which nothing in the
+EMSP uses yet. What only a vehicle holds is refused. The MO root this EMSP
+signs its contracts below is not in the store: it is kept with its private key
+below `pki/`, see above.
+
+```
+dotnet run --project EMSPCLI -- --import-certificate tlsRoot=our-clocks-root.pem --list-certificates
+```
+
+A root is believed as soon as it is in - a TLS root or a server certificate for
+every use, until the Certificates page says what it is for.
+`--list-certificates` prints every handle, and for a TLS root or a server
+certificate what it is kept for; `--certificates <dir>` points the EMSP at
+another store. PEM, DER and PKCS#12 all go in, and a protected PKCS#12 is
+opened with `--certificate-password <pw>` or, better, `EMSP_CERT_PASSWORD` -
+once, and the password is not kept.
+
+The store holds private keys **unencrypted**: a PKCS#12 is opened with its
+password once, at import, and written back without one. The file system is
+what guards them, and the EMSP says so at every start and at every import.
+Reading the store is for every role but a driver; changing it is the
+administrators', unless the configuration file says otherwise.
 
 
 ### Where things are

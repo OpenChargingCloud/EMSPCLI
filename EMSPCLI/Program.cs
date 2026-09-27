@@ -24,6 +24,7 @@ using cloud.charging.open.EMSP.CommandLine;
 using cloud.charging.open.EMSP.Configuration;
 
 using cloud.charging.open.protocols.WWCP.Node;
+using cloud.charging.open.protocols.WWCP.Node.Certificates;
 using cloud.charging.open.protocols.WWCP.Node.Configuration;
 using cloud.charging.open.protocols.WWCP.Node.Logging;
 
@@ -102,12 +103,77 @@ namespace cloud.charging.open.EMSP.CLI
 
         #endregion
 
+        #region (private static) ListCertificates(EMSP)
+
+        /// <summary>
+        /// What is in this EMSP's certificate store, as a table.
+        /// </summary>
+        /// <remarks>
+        /// Printed and not returned: this is what <c>--list-certificates</c>
+        /// exists for, and its whole job is to put the handles in front of
+        /// somebody - and, for a TLS root or a server certificate, what it is
+        /// kept for, which is the one thing about it the Certificates page
+        /// changes that the file does not say.
+        /// </remarks>
+        private static void ListCertificates(Provider EMSP)
+        {
+
+            Console.WriteLine();
+            Console.WriteLine($"  Certificates in {EMSP.Certificates.Directory}");
+            Console.WriteLine();
+
+            var entries = EMSP.Certificates.Entries;
+
+            if (entries.Count == 0)
+            {
+                Console.WriteLine("  (empty - put one there with --import-certificate <kind>=<file>)");
+                Console.WriteLine();
+                return;
+            }
+
+            foreach (var kind in EMSP.Certificates.Kinds)
+            {
+
+                var ofKind = entries.Where(entry => entry.Kind == kind).ToArray();
+
+                if (ofKind.Length == 0)
+                    continue;
+
+                Console.WriteLine($"  {kind.Describe()}");
+
+                foreach (var entry in ofKind)
+                {
+
+                    var state = !entry.IsActive       ? "off"
+                                : entry.IsExpired     ? "EXPIRED"
+                                : entry.IsNotYetValid ? "not yet valid"
+                                : "on";
+
+                    var usages = kind.HasUsages()
+                                     ? $"  ({CertificateUsages.Describe(entry.Usages)})"
+                                     : "";
+
+                    Console.WriteLine($"    {entry.Id}  {state,-13}  until {entry.NotAfter.UtcDateTime:yyyy-MM-dd}  " +
+                                      $"{entry.Label}{usages}");
+
+                }
+
+                Console.WriteLine();
+
+            }
+
+        }
+
+        #endregion
+
         #region (private static) PrintUsage()
 
         private static void PrintUsage()
         {
             Console.WriteLine("Usage: EMSPCLI [--port <number>] [--any] [--frontend <dist directory>]");
             Console.WriteLine("               [--config <file>] [--accounts <directory>]");
+            Console.WriteLine("               [--certificates <dir>] [--import-certificate <kind>=<file>]");
+            Console.WriteLine("               [--certificate-password <pw>] [--list-certificates]");
             Console.WriteLine("               [--verbose | --quiet] [--no-trace] [--log-file <dir>] [--no-log-file]");
             Console.WriteLine();
             Console.WriteLine("Web interface:");
@@ -134,9 +200,38 @@ namespace cloud.charging.open.EMSP.CLI
             Console.WriteLine($"                    keeps them in files of its own below {Provider.OCPIDirectoryName}/ beside it, where the");
             Console.WriteLine("                    web interface puts them.");
             Console.WriteLine();
+            Console.WriteLine("The certificate store. Everything this EMSP believes, presents and recognises a");
+            Console.WriteLine("server by is kept here, one file per certificate, and switched on and off one at a");
+            Console.WriteLine("time:");
+            Console.WriteLine($"  --certificates <dir>      where the store is (default: {CertificatesConfiguration.DefaultDirectory}/ beside the");
+            Console.WriteLine("                    configuration file, and a relative directory is measured from there).");
+            Console.WriteLine("                    Certificates already in it are read again at every start, so copying");
+            Console.WriteLine("                    one in is a way to install it. The Certificates page manages the");
+            Console.WriteLine("                    same store");
+            Console.WriteLine("  --import-certificate <kind>=<file>");
+            Console.WriteLine("                    copy a certificate into the store, as PEM, DER or PKCS#12. A root");
+            Console.WriteLine("                    is a certificate on its own; a TLS identity has to bring its");
+            Console.WriteLine("                    private key, so a PEM for one carries the key beside it. May be");
+            Console.WriteLine("                    given several times. <kind> is one of:");
+            Console.WriteLine("                      tlsRoot    what a time server or a name server over TLS may chain to");
+            Console.WriteLine("                      tlsServer  a server's own certificate, to hold it to by fingerprint");
+            Console.WriteLine("                      v2gRoot, moRoot, oemRoot, clientRoot, tlsIdentity");
+            Console.WriteLine("                                 kept, and used by nothing here yet");
+            Console.WriteLine("                    A tlsRoot or a tlsServer goes in for every use; the Certificates");
+            Console.WriteLine("                    page says what it is for - the time servers, the name servers.");
+            Console.WriteLine("                    A root is believed as soon as it is in; every usable one of its");
+            Console.WriteLine("                    kind is");
+            Console.WriteLine("  --certificate-password <pw>");
+            Console.WriteLine("                    what opens a protected PKCS#12 being imported. Used once and not");
+            Console.WriteLine("                    kept: the store holds what it has without a password. A password");
+            Console.WriteLine("                    given here stands in the process list for every other user of the");
+            Console.WriteLine("                    machine, so prefer the environment: EMSP_CERT_PASSWORD");
+            Console.WriteLine("  --list-certificates       print the store, with the handle of each certificate");
+            Console.WriteLine();
             Console.WriteLine("Contracts:");
             Console.WriteLine($"  The MO root, its two sub-CAs and every contract certificate issued to a driver live");
-            Console.WriteLine($"  below {Provider.PKIDirectoryName}/ beside the configuration file, made at the first start and kept. A");
+            Console.WriteLine($"  below {Provider.PKIDirectoryName}/ beside the configuration file, made at the first start and kept -");
+            Console.WriteLine("  with their private keys, and so not in the certificate store. A");
             Console.WriteLine("  \"contracts\" section of the configuration file may switch the sign-up of drivers off");
             Console.WriteLine("  (\"selfSignUp\": false) and change how long a contract is good for (\"validityDays\").");
             Console.WriteLine();
@@ -180,6 +275,13 @@ namespace cloud.charging.open.EMSP.CLI
             var      noTrace         = false;
             String?  logPath         = null;
             var      noLogFile       = false;
+
+            String?  certificatesDir   = null;
+            String?  certPassword      = null;
+            var      listCertificates  = false;
+
+            // Repeatable, and in the order they were typed.
+            var      imports           = new List<(CertificateKind Kind, String File)>();
 
             for (var i = 0; i < Arguments.Length; i++)
             {
@@ -253,6 +355,63 @@ namespace cloud.charging.open.EMSP.CLI
                         noLogFile = true;
                         break;
 
+                    case "--certificates":
+                        if (!TryTakeValue(Arguments, ref i, out certificatesDir))
+                        {
+                            Console.Error.WriteLine("Missing directory after --certificates!");
+                            return 2;
+                        }
+                        break;
+
+                    case "--certificate-password":
+                        if (!TryTakeValue(Arguments, ref i, out certPassword))
+                        {
+                            Console.Error.WriteLine("Missing password after --certificate-password!");
+                            return 2;
+                        }
+                        break;
+
+                    case "--list-certificates":
+                        listCertificates = true;
+                        break;
+
+                    case "--import-certificate":
+                    {
+
+                        if (!TryTakeValue(Arguments, ref i, out var import) || import is null)
+                        {
+                            Console.Error.WriteLine("Missing <kind>=<file> after --import-certificate!");
+                            return 2;
+                        }
+
+                        // Split at the FIRST '=' only: everything after it is
+                        // the path, and a Windows path is full of things that
+                        // are not separators.
+                        var split = import.IndexOf('=');
+
+                        if (split < 1 || split == import.Length - 1)
+                        {
+                            Console.Error.WriteLine($"--import-certificate wants <kind>=<file>, and '{import}' is not that.");
+                            return 2;
+                        }
+
+                        // The kinds this EMSP keeps, and not every kind there
+                        // is: a vehicle's contract named here would otherwise
+                        // be refused only once the EMSP had been built.
+                        if (!CertificateKindExtensions.TryParseKind(import[..split], out var importKind) ||
+                            !Provider.StoredCertificateKinds.Contains(importKind))
+                        {
+                            Console.Error.WriteLine($"'{import[..split]}' is not a kind of certificate this EMSP keeps. " +
+                                                    $"Use one of {String.Join(", ", Provider.StoredCertificateKinds.Select(one => one.AsText()))}.");
+                            return 2;
+                        }
+
+                        imports.Add((importKind, import[(split + 1)..]));
+
+                        break;
+
+                    }
+
                     case "-h":
                     case "--help":
                         PrintUsage();
@@ -318,6 +477,8 @@ namespace cloud.charging.open.EMSP.CLI
 
                            Frontend:         frontend,
 
+                           CertificatesPath: certificatesDir,
+
                            ConsoleLogLevel:  verbose ? LogLevel.Debug
                                                  : quiet ? LogLevel.Warning
                                                  : LogLevel.Info,
@@ -349,6 +510,52 @@ namespace cloud.charging.open.EMSP.CLI
 
             await using (emsp)
             {
+
+                #region What the switches said about certificates
+
+                // Before the start, so that a root imported now is believed
+                // by the first clock check and the first name looked up.
+                foreach (var (kind, file) in imports)
+                {
+
+                    if (!File.Exists(file))
+                    {
+                        Console.Error.WriteLine($"--import-certificate: there is no file '{file}'.");
+                        return 2;
+                    }
+
+                    Byte[] content;
+
+                    try
+                    {
+                        content = await File.ReadAllBytesAsync(file);
+                    }
+                    catch (Exception problem)
+                    {
+                        Console.Error.WriteLine($"--import-certificate: '{file}' could not be read: {problem.Message}");
+                        return 2;
+                    }
+
+                    if (!emsp.Certificates.Import(content,
+                                                  kind,
+                                                  certPassword ?? Environment.GetEnvironmentVariable("EMSP_CERT_PASSWORD"),
+                                                  Label: null,
+                                                  out var imported,
+                                                  out var refused))
+                    {
+                        Console.Error.WriteLine($"--import-certificate: {file} could not be imported as " +
+                                                $"{kind.AsText()}: {refused}");
+                        return 2;
+                    }
+
+                    Console.WriteLine($"  imported       {imported.Label} as {kind.AsText()}, handle {imported.Id}");
+
+                }
+
+                if (listCertificates)
+                    ListCertificates(emsp);
+
+                #endregion
 
                 try
                 {
@@ -409,6 +616,7 @@ namespace cloud.charging.open.EMSP.CLI
                 Console.WriteLine($"  OCPI party     {emsp.PartyIdText} ({emsp.BusinessDetails.Name})");
                 Console.WriteLine($"  OCPI versions  {emsp.OCPIVersionsURL} ({String.Join(", ", emsp.OCPIVersions.Select(version => version.Label))})");
                 Console.WriteLine($"  roaming        {emsp.RemotePartyCount} partner(s), {emsp.TokenCount} token(s) in {emsp.OCPIDirectory}");
+                Console.WriteLine($"  certificates   {emsp.Certificates.Entries.Count} in {emsp.Certificates.Directory}");
                 Console.WriteLine($"  MO root        {emsp.ContractCA.RootTrustPath}{(emsp.ContractCA.WasCreated ? " (made just now)" : "")}");
                 Console.WriteLine($"  contracts      {emsp.ContractCount} issued, {emsp.ContractValidity.TotalDays:F0} days each, in {emsp.Contracts.Directory}");
                 Console.WriteLine($"  drivers        {(emsp.SelfSignUpEnabled ? $"sign up at {emsp.SignUpURL}" : "sign-up switched off; accounts are made by an administrator")}");
