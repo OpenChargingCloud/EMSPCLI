@@ -298,3 +298,9 @@ configuration.json
 # that the build stamp does not start calling every tree dirty the first time
 # somebody puts something else in there.
 /logs/
+
+# What each server this EMSP connects to was last believed with: the
+# fingerprints of its certificate and its root, written beside the
+# configuration so that a change of certificate is noticed across a restart.
+# A record of what this machine saw, like the log, and not of the source.
+known-servers.json
