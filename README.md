@@ -203,11 +203,11 @@ administrators', unless the configuration file says otherwise.
 | | |
 |---|---|
 | `EMSPCLI/` | the command line: switches, what the console says at a start, and the prompt with its commands in `CLI/` |
-| `libs/EMSP/EMSP/` | the EMSP itself - its sections of the configuration file, its roles, its JSON API, its OCPI bindings, its web interface |
+| `libs/EMSP/EMSP/` | the EMSP itself - its sections of the configuration file, its roles, its routes on the node's JSON API, its OCPI bindings, its web interface |
 | `libs/EMSP/EMSP/Frontend/` | the web interface: TypeScript and SCSS, bundled by webpack |
 | `libs/EMSP/EMSP/Contracts/` | the MO root and its sub-CAs, the signing of contracts, the eMAID and its check digit |
 | `libs/EMSP/EMSPTests/` | what an EMSP does when a browser, a driver or a CPO talks to it |
-| `libs/WWCP_Node/` | the node below the EMSP: the log, the configuration file, name resolution and the time, the certificate store, the accounts and the web server - what an EMSP has in common with a vehicle and a charging station |
+| `libs/WWCP_Node/` | the node below the EMSP: the log, the configuration file, name resolution and the time, the certificate store, the accounts, the web server and the JSON API every node answers - what an EMSP has in common with a vehicle and a charging station |
 | `libs/WWCP_OCPI/` | the protocol: OCPI 2.1.1, 2.2.1 and 2.3.0 |
 | `libs/WWCP_ISO15118/` | the ISO 15118 certificate profiles the MO root is built to |
 | `.github/workflows/` | what runs on every push, and what runs at night |
