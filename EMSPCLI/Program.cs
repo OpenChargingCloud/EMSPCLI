@@ -17,16 +17,11 @@
 
 #region Usings
 
-using org.GraphDefined.Vanaheimr.Hermod;
-using org.GraphDefined.Vanaheimr.Hermod.HTTP;
-
 using cloud.charging.open.EMSP.CommandLine;
 using cloud.charging.open.EMSP.Configuration;
 
-using cloud.charging.open.protocols.WWCP.Node;
-using cloud.charging.open.protocols.WWCP.Node.Certificates;
+using cloud.charging.open.protocols.WWCP.Node.CommandLine;
 using cloud.charging.open.protocols.WWCP.Node.Configuration;
-using cloud.charging.open.protocols.WWCP.Node.Logging;
 
 // Inside this namespace "EMSP" is the namespace and not the class, so the
 // class needs a name of its own here.
@@ -39,221 +34,55 @@ namespace cloud.charging.open.EMSP.CLI
 
     /// <summary>
     /// One e-mobility service provider, with its web interface and a prompt,
-    /// until 'quit' or Ctrl+C.
+    /// until 'quit', Ctrl+C or SIGTERM.
     /// </summary>
+    /// <remarks>
+    /// What every kind of node's program does is the node's: the switches and
+    /// the words -h explains them with, why it could not be set up or could not
+    /// start, what goes into the certificate store, the banner and the prompt.
+    /// What is left here is the EMSP's: what its configuration holds, where its
+    /// contracts are, and what its banner says of OCPI and of the contracts.
+    /// </remarks>
     public class Program
     {
 
-        #region (private static) TryTakeValue(Arguments, ref Index, out Value)
-
-        private static Boolean TryTakeValue(String[]     Arguments,
-                                            ref Int32    Index,
-                                            out String?  Value)
-        {
-
-            if (Index + 1 < Arguments.Length && !Arguments[Index + 1].StartsWith("--"))
-            {
-                Value = Arguments[++Index];
-                return true;
-            }
-
-            Value = null;
-            return false;
-
-        }
-
-        #endregion
-
-        #region (private static) RepositoryRoot()
+        #region (private static) Usage
 
         /// <summary>
-        /// The directory holding EMSPCLI.slnx, looked up from the binary and
-        /// from the current directory; the current directory when neither
-        /// leads to it.
+        /// What -h shows: every node's switches, in an EMSP's words, and where
+        /// its contracts are.
         /// </summary>
-        /// <remarks>
-        /// The accounts, the configuration and the OCPI files beside it
-        /// default to a place below it, so that they do not end up in bin/ -
-        /// where the next "dotnet clean" would take this EMSP's password and
-        /// its roaming partners with it.
-        /// </remarks>
-        private static String RepositoryRoot()
-        {
+        private static readonly NodeUsage Usage = new (
 
-            foreach (var start in new[] { AppContext.BaseDirectory, Environment.CurrentDirectory })
-            {
+            Program:            "EMSPCLI",
+            Kind:               Provider.EMSPKind,
+            DefaultPort:        Provider.DefaultHTTPPort,
+            FrontendSources:    "libs/EMSP/EMSP/Frontend",
 
-                var directory = new DirectoryInfo(start);
+            ConfigurationSays:  "where the name servers, the time servers and the OCPI identity of this EMSP live (default: " +
+                               $"{WWCPConfigFile.DefaultFileName} below the repository root). Without the file the EMSP runs on " +
+                               $"the system defaults and is {OCPIConfiguration.DefaultCountryCode}-{OCPIConfiguration.DefaultPartyId} " +
+                                "in OCPI; the DNS and NTS pages of the web interface write the name and time servers into it, " +
+                                "and every change there takes effect at once. Who this EMSP is in OCPI is read once, at the " +
+                                "start. The roaming partners and the tokens are not in it: the OCPI library keeps them in files " +
+                               $"of its own below {Provider.OCPIDirectoryName}/ beside it, where the web interface puts them.",
 
-                while (directory is not null)
-                {
+            CertificateKinds:   Provider.StoredCertificateKinds,
 
-                    if (File.Exists(Path.Combine(directory.FullName, "EMSPCLI.slnx")))
-                        return directory.FullName;
+            BeforeTheLog:       [
+                                    "Contracts:",
+                                    .. NodeUsage.Wrap("The MO root, its two sub-CAs and every contract certificate issued to a " +
+                                                     $"driver live below {Provider.PKIDirectoryName}/ beside the configuration file, " +
+                                                      "made at the first start and kept - with their private keys, and so not in " +
+                                                      "the certificate store. A \"contracts\" section of the configuration file " +
+                                                      "may switch the sign-up of drivers off (\"selfSignUp\": false) and change how " +
+                                                      "long a contract is good for (\"validityDays\").",
+                                                      "  ",
+                                                      "  "),
+                                    ""
+                                ]
 
-                    directory = directory.Parent;
-
-                }
-
-            }
-
-            return Environment.CurrentDirectory;
-
-        }
-
-        #endregion
-
-        #region (private static) ListCertificates(EMSP)
-
-        /// <summary>
-        /// What is in this EMSP's certificate store, as a table.
-        /// </summary>
-        /// <remarks>
-        /// Printed and not returned: this is what <c>--list-certificates</c>
-        /// exists for, and its whole job is to put the handles in front of
-        /// somebody - and, for a TLS root or a server certificate, what it is
-        /// kept for, which is the one thing about it the Certificates page
-        /// changes that the file does not say.
-        /// </remarks>
-        private static void ListCertificates(Provider EMSP)
-        {
-
-            Console.WriteLine();
-            Console.WriteLine($"  Certificates in {EMSP.Certificates.Directory}");
-            Console.WriteLine();
-
-            var entries = EMSP.Certificates.Entries;
-
-            if (entries.Count == 0)
-            {
-                Console.WriteLine("  (empty - put one there with --import-certificate <kind>=<file>)");
-                Console.WriteLine();
-                return;
-            }
-
-            foreach (var kind in EMSP.Certificates.Kinds)
-            {
-
-                var ofKind = entries.Where(entry => entry.Kind == kind).ToArray();
-
-                if (ofKind.Length == 0)
-                    continue;
-
-                Console.WriteLine($"  {kind.Describe()}");
-
-                foreach (var entry in ofKind)
-                {
-
-                    var state = !entry.IsActive       ? "off"
-                                : entry.IsExpired     ? "EXPIRED"
-                                : entry.IsNotYetValid ? "not yet valid"
-                                : "on";
-
-                    var usages = kind.HasUsages()
-                                     ? $"  ({CertificateUsages.Describe(entry.Usages)})"
-                                     : "";
-
-                    Console.WriteLine($"    {entry.Id}  {state,-13}  until {entry.NotAfter.UtcDateTime:yyyy-MM-dd}  " +
-                                      $"{entry.Label}{usages}");
-
-                }
-
-                Console.WriteLine();
-
-            }
-
-        }
-
-        #endregion
-
-        #region (private static) PrintUsage()
-
-        private static void PrintUsage()
-        {
-            Console.WriteLine("Usage: EMSPCLI [--port <number>] [--any] [--frontend <dist directory>]");
-            Console.WriteLine("               [--config <file>] [--accounts <directory>]");
-            Console.WriteLine("               [--certificates <dir>] [--import-certificate <kind>=<file>]");
-            Console.WriteLine("               [--certificate-password <pw>] [--list-certificates]");
-            Console.WriteLine("               [--verbose | --quiet] [--no-trace] [--log-file <dir>] [--no-log-file]");
-            Console.WriteLine();
-            Console.WriteLine("Web interface:");
-            Console.WriteLine($"  --port <number>   TCP port to listen on (default: {Provider.DefaultHTTPPort})");
-            Console.WriteLine("  --any             listen on all addresses instead of 127.0.0.1");
-            Console.WriteLine("  --frontend <dir>  serve the web interface from a directory on disk instead of the");
-            Console.WriteLine("                    bundle embedded in the assembly - use it together with");
-            Console.WriteLine("                    'npm run watch' in libs/EMSP/EMSP/Frontend");
-            Console.WriteLine();
-            Console.WriteLine("Accounts:");
-            Console.WriteLine($"  --accounts <dir>    where the accounts live (default: {Provider.DefaultAccountsPath}/ below the");
-            Console.WriteLine("                      repository root): the users, their roles, the organizations and");
-            Console.WriteLine("                      the API keys. Without them a password is made up at the first");
-            Console.WriteLine($"                      start for the user '{Provider.DefaultAdminUser}' and shown once.");
-            Console.WriteLine();
-            Console.WriteLine("Configuration:");
-            Console.WriteLine("  --config <file>   where the name servers, the time servers and the OCPI identity of");
-            Console.WriteLine($"                    this EMSP live (default: {WWCPConfigFile.DefaultFileName} below the repository");
-            Console.WriteLine("                    root). Without the file the EMSP runs on the system defaults and is");
-            Console.WriteLine($"                    {OCPIConfiguration.DefaultCountryCode}-{OCPIConfiguration.DefaultPartyId} in OCPI; the DNS and NTS pages of the web interface write");
-            Console.WriteLine("                    the name and time servers into it, and every change there takes");
-            Console.WriteLine("                    effect at once. Who this EMSP is in OCPI is read once, at the start.");
-            Console.WriteLine("                    The roaming partners and the tokens are not in it: the OCPI library");
-            Console.WriteLine($"                    keeps them in files of its own below {Provider.OCPIDirectoryName}/ beside it, where the");
-            Console.WriteLine("                    web interface puts them.");
-            Console.WriteLine();
-            Console.WriteLine("The certificate store. Everything this EMSP believes, presents and recognises a");
-            Console.WriteLine("server by is kept here, one file per certificate, and switched on and off one at a");
-            Console.WriteLine("time:");
-            Console.WriteLine($"  --certificates <dir>      where the store is (default: {CertificatesConfiguration.DefaultDirectory}/ beside the");
-            Console.WriteLine("                    configuration file, and a relative directory is measured from there).");
-            Console.WriteLine("                    Certificates already in it are read again at every start, so copying");
-            Console.WriteLine("                    one in is a way to install it. The Certificates page manages the");
-            Console.WriteLine("                    same store");
-            Console.WriteLine("  --import-certificate <kind>=<file>");
-            Console.WriteLine("                    copy a certificate into the store, as PEM, DER or PKCS#12. A root");
-            Console.WriteLine("                    is a certificate on its own; a TLS identity has to bring its");
-            Console.WriteLine("                    private key, so a PEM for one carries the key beside it. May be");
-            Console.WriteLine("                    given several times. <kind> is one of:");
-            Console.WriteLine("                      tlsRoot    what a time server or a name server over TLS may chain to");
-            Console.WriteLine("                      tlsServer  a server's own certificate, to hold it to by fingerprint");
-            Console.WriteLine("                      v2gRoot, moRoot, oemRoot, clientRoot, tlsIdentity");
-            Console.WriteLine("                                 kept, and used by nothing here yet");
-            Console.WriteLine("                    A tlsRoot or a tlsServer goes in for every use; the Certificates");
-            Console.WriteLine("                    page says what it is for - the time servers, the name servers.");
-            Console.WriteLine("                    A root is believed as soon as it is in; every usable one of its");
-            Console.WriteLine("                    kind is");
-            Console.WriteLine("  --certificate-password <pw>");
-            Console.WriteLine("                    what opens a protected PKCS#12 being imported. Used once and not");
-            Console.WriteLine("                    kept: the store holds what it has without a password. A password");
-            Console.WriteLine("                    given here stands in the process list for every other user of the");
-            Console.WriteLine("                    machine, so prefer the environment: EMSP_CERT_PASSWORD");
-            Console.WriteLine("  --list-certificates       print the store, with the handle of each certificate");
-            Console.WriteLine();
-            Console.WriteLine("Contracts:");
-            Console.WriteLine($"  The MO root, its two sub-CAs and every contract certificate issued to a driver live");
-            Console.WriteLine($"  below {Provider.PKIDirectoryName}/ beside the configuration file, made at the first start and kept -");
-            Console.WriteLine("  with their private keys, and so not in the certificate store. A");
-            Console.WriteLine("  \"contracts\" section of the configuration file may switch the sign-up of drivers off");
-            Console.WriteLine("  (\"selfSignUp\": false) and change how long a contract is good for (\"validityDays\").");
-            Console.WriteLine();
-            Console.WriteLine("Log:");
-            Console.WriteLine("  -v, --verbose     write every entry to the console, down to the debug ones");
-            Console.WriteLine("  -q, --quiet       write only warnings and worse");
-            Console.WriteLine("      --no-trace    do not pick up what the libraries below write with DebugX");
-            Console.WriteLine();
-            Console.WriteLine("Whatever the console shows, the web interface shows the whole log under 'Logs'.");
-            Console.WriteLine();
-            Console.WriteLine($"  --log-file <dir>  where the log files go (default: {Provider.DefaultLogPath}/ below the repository");
-            Console.WriteLine("                    root): one file per UTC day, every entry down to the debug");
-            Console.WriteLine("                    ones, and nothing is ever deleted.");
-            Console.WriteLine("      --no-log-file do not write one. Then what the console did not show, and");
-            Console.WriteLine($"                    what falls out of the web interface's last {EventLog.DefaultCapacity} entries, is");
-            Console.WriteLine("                    gone.");
-            Console.WriteLine();
-            Console.WriteLine("Once it is up, the console is a prompt: 'help' lists what can be typed there,");
-            Console.WriteLine("Tab completes it, and 'quit' or Ctrl+C stops the EMSP. Started where there is");
-            Console.WriteLine("no terminal - from a script, under a service manager, in CI, or with the output");
-            Console.WriteLine("going into a file - there is no prompt and it simply runs.");
-        }
+        );
 
         #endregion
 
@@ -265,193 +94,20 @@ namespace cloud.charging.open.EMSP.CLI
 
             #region Arguments
 
-            IPPort?  port            = null;
-            var      anyAddress      = false;
-            String?  frontendDir     = null;
-            String?  configFilePath  = null;
-            String?  accountsPath    = null;
-            var      verbose         = false;
-            var      quiet           = false;
-            var      noTrace         = false;
-            String?  logPath         = null;
-            var      noLogFile       = false;
+            // Every node's switches; an EMSP has none of its own.
+            var arguments = NodeArguments.Parse(Arguments);
 
-            String?  certificatesDir   = null;
-            String?  certPassword      = null;
-            var      listCertificates  = false;
+            if (arguments.Refused(Usage) is Int32 refused)
+                return refused;
 
-            // Repeatable, and in the order they were typed.
-            var      imports           = new List<(CertificateKind Kind, String File)>();
+            if (arguments.RefuseTheRest(Usage) is Int32 unknown)
+                return unknown;
 
-            for (var i = 0; i < Arguments.Length; i++)
-            {
-                switch (Arguments[i])
-                {
-
-                    case "--port":
-                        if (i + 1 < Arguments.Length && UInt16.TryParse(Arguments[i + 1], out var parsedPort))
-                        {
-                            port = IPPort.Parse(parsedPort);
-                            i++;
-                        }
-                        else
-                        {
-                            Console.Error.WriteLine("Missing or invalid port number after --port!");
-                            return 2;
-                        }
-                        break;
-
-                    case "--any":
-                        anyAddress = true;
-                        break;
-
-                    case "--frontend":
-                        if (!TryTakeValue(Arguments, ref i, out frontendDir))
-                        {
-                            Console.Error.WriteLine("Missing directory after --frontend!");
-                            return 2;
-                        }
-                        break;
-
-                    case "--accounts":
-                        if (!TryTakeValue(Arguments, ref i, out accountsPath))
-                        {
-                            Console.Error.WriteLine("Missing directory after --accounts!");
-                            return 2;
-                        }
-                        break;
-
-                    case "--config":
-                        if (!TryTakeValue(Arguments, ref i, out configFilePath))
-                        {
-                            Console.Error.WriteLine("Missing file after --config!");
-                            return 2;
-                        }
-                        break;
-
-                    case "-v":
-                    case "--verbose":
-                        verbose = true;
-                        break;
-
-                    case "-q":
-                    case "--quiet":
-                        quiet = true;
-                        break;
-
-                    case "--no-trace":
-                        noTrace = true;
-                        break;
-
-                    case "--log-file":
-                        if (!TryTakeValue(Arguments, ref i, out logPath))
-                        {
-                            Console.Error.WriteLine("Missing directory after --log-file!");
-                            return 2;
-                        }
-                        break;
-
-                    case "--no-log-file":
-                        noLogFile = true;
-                        break;
-
-                    case "--certificates":
-                        if (!TryTakeValue(Arguments, ref i, out certificatesDir))
-                        {
-                            Console.Error.WriteLine("Missing directory after --certificates!");
-                            return 2;
-                        }
-                        break;
-
-                    case "--certificate-password":
-                        if (!TryTakeValue(Arguments, ref i, out certPassword))
-                        {
-                            Console.Error.WriteLine("Missing password after --certificate-password!");
-                            return 2;
-                        }
-                        break;
-
-                    case "--list-certificates":
-                        listCertificates = true;
-                        break;
-
-                    case "--import-certificate":
-                    {
-
-                        if (!TryTakeValue(Arguments, ref i, out var import) || import is null)
-                        {
-                            Console.Error.WriteLine("Missing <kind>=<file> after --import-certificate!");
-                            return 2;
-                        }
-
-                        // Split at the FIRST '=' only: everything after it is
-                        // the path, and a Windows path is full of things that
-                        // are not separators.
-                        var split = import.IndexOf('=');
-
-                        if (split < 1 || split == import.Length - 1)
-                        {
-                            Console.Error.WriteLine($"--import-certificate wants <kind>=<file>, and '{import}' is not that.");
-                            return 2;
-                        }
-
-                        // The kinds this EMSP keeps, and not every kind there
-                        // is: a vehicle's contract named here would otherwise
-                        // be refused only once the EMSP had been built.
-                        if (!CertificateKindExtensions.TryParseKind(import[..split], out var importKind) ||
-                            !Provider.StoredCertificateKinds.Contains(importKind))
-                        {
-                            Console.Error.WriteLine($"'{import[..split]}' is not a kind of certificate this EMSP keeps. " +
-                                                    $"Use one of {String.Join(", ", Provider.StoredCertificateKinds.Select(one => one.AsText()))}.");
-                            return 2;
-                        }
-
-                        imports.Add((importKind, import[(split + 1)..]));
-
-                        break;
-
-                    }
-
-                    case "-h":
-                    case "--help":
-                        PrintUsage();
-                        return 0;
-
-                    default:
-                        Console.Error.WriteLine($"Unknown argument '{Arguments[i]}'!");
-                        PrintUsage();
-                        return 2;
-
-                }
-            }
-
-            if (verbose && quiet)
-            {
-                Console.Error.WriteLine("--verbose and --quiet ask for opposite things!");
-                return 2;
-            }
-
-            #endregion
-
-            #region Where the web interface comes from
-
-            // A directory given on the command line wins, so that
-            // "npm run watch" beside a running EMSP shows up in the browser on
-            // a reload, without rebuilding the C# side.
-            IStaticContentSource? frontend = null;
-
-            if (frontendDir is not null)
-            {
-
-                if (!Directory.Exists(frontendDir))
-                {
-                    Console.Error.WriteLine($"The frontend directory '{frontendDir}' does not exist!");
-                    return 2;
-                }
-
-                frontend = new FileSystemContentSource(frontendDir);
-
-            }
+            // Not bin/, where the next "dotnet clean" would take this EMSP's
+            // password with it - nor, since the OCPI files and the contracts
+            // go beside the configuration file, its roaming partners and its
+            // MO root.
+            var root = NodeProgram.RepositoryRoot("EMSPCLI.slnx");
 
             #endregion
 
@@ -462,197 +118,48 @@ namespace cloud.charging.open.EMSP.CLI
             try
             {
                 emsp = new Provider(
-
-                           HTTPHostname:     anyAddress
-                                                 ? IPvXAddress.Any
-                                                 : IPv4Address.Localhost,
-
-                           HTTPPort:         port,
-
-                           AccountsPath:     accountsPath ?? Path.Combine(RepositoryRoot(), Provider.DefaultAccountsPath),
-
-                           ConfigFile:       new WWCPConfigFile(
-                                                 configFilePath ?? Path.Combine(RepositoryRoot(), WWCPConfigFile.DefaultFileName)
-                                             ),
-
-                           Frontend:         frontend,
-
-                           CertificatesPath: certificatesDir,
-
-                           ConsoleLogLevel:  verbose ? LogLevel.Debug
-                                                 : quiet ? LogLevel.Warning
-                                                 : LogLevel.Info,
-
-                           // Below the repository root rather than beside the
-                           // binary, for the reason the accounts are: bin/ is
-                           // what the next "dotnet clean" empties.
-                           LogPath:          noLogFile
-                                                 ? null
-                                                 : logPath ?? Path.Combine(RepositoryRoot(), Provider.DefaultLogPath),
-
-                           BridgeDebugLog:   !noTrace
-
+                           HTTPHostname:      arguments.HTTPHostname,
+                           HTTPPort:          arguments.Port,
+                           AccountsPath:      arguments.AccountsPathBelow(root),
+                           ConfigFile:        new WWCPConfigFile(arguments.ConfigFilePathBelow(root)),
+                           Frontend:          arguments.Frontend,
+                           CertificatesPath:  arguments.CertificatesPath,
+                           ConsoleLogLevel:   arguments.ConsoleLogLevel,
+                           LogPath:           arguments.LogPathBelow(root),
+                           BridgeDebugLog:    !arguments.NoTrace
                        );
             }
             catch (Exception e)
             {
-
-                Console.Error.WriteLine($"The EMSP could not be set up: {e.Message}");
-
-                // An EMSP that does not come up at all is the one moment the
-                // stack trace is worth more than a tidy console.
-                if (verbose)
-                    Console.Error.WriteLine(e);
-
-                return 1;
-
+                return NodeProgram.CouldNotBeSetUp(Provider.EMSPKind, e, arguments.Verbose);
             }
 
             await using (emsp)
             {
 
-                #region What the switches said about certificates
+                if (emsp.ImportCertificates(arguments, out _) is Int32 notImported)
+                    return notImported;
 
-                // Before the start, so that a root imported now is believed
-                // by the first clock check and the first name looked up.
-                foreach (var (kind, file) in imports)
-                {
+                if (arguments.ListCertificates)
+                    emsp.ListCertificates();
 
-                    if (!File.Exists(file))
-                    {
-                        Console.Error.WriteLine($"--import-certificate: there is no file '{file}'.");
-                        return 2;
-                    }
-
-                    Byte[] content;
-
-                    try
-                    {
-                        content = await File.ReadAllBytesAsync(file);
-                    }
-                    catch (Exception problem)
-                    {
-                        Console.Error.WriteLine($"--import-certificate: '{file}' could not be read: {problem.Message}");
-                        return 2;
-                    }
-
-                    if (!emsp.Certificates.Import(content,
-                                                  kind,
-                                                  certPassword ?? Environment.GetEnvironmentVariable("EMSP_CERT_PASSWORD"),
-                                                  Label: null,
-                                                  out var imported,
-                                                  out var refused))
-                    {
-                        Console.Error.WriteLine($"--import-certificate: {file} could not be imported as " +
-                                                $"{kind.AsText()}: {refused}");
-                        return 2;
-                    }
-
-                    Console.WriteLine($"  imported       {imported.Label} as {kind.AsText()}, handle {imported.Id}");
-
-                }
-
-                if (listCertificates)
-                    ListCertificates(emsp);
-
-                #endregion
-
-                try
-                {
-                    await emsp.Start();
-                }
-                catch (PortUnavailableException problem)
-                {
-
-                    // What the node says about a port it cannot have, rather
-                    // than a stack trace under the operating system's own words
-                    // for a port in use - in German on a German Windows, with
-                    // the port named nowhere.
-                    Console.Error.WriteLine($"The EMSP could not start: {problem.Message}.");
-                    Console.Error.WriteLine("Another copy of this EMSP already running is the usual answer. " +
-                                            "Stop it, or give this one another port with --port <number>.");
-
-                    if (verbose)
-                        Console.Error.WriteLine(problem);
-
-                    return 1;
-
-                }
+                if (await emsp.Started(arguments.Verbose) is Int32 notStarted)
+                    return notStarted;
 
                 #region What somebody who just started this needs to know
 
-                Console.WriteLine();
-                Console.WriteLine($"  web interface  {emsp.WebInterfaceURL}");
-                Console.WriteLine($"  JSON API       {emsp.APIURL}v1/status");
-                Console.WriteLine($"  event stream   {emsp.APIURL}v1/events");
-                Console.WriteLine($"  HTTPExt API    {emsp.WebInterfaceURL}{Provider.ExtAPIPath.ToString().Trim('/')}/");
-                Console.WriteLine($"  frontend from  {emsp.Frontend.Description}");
-
-                foreach (var line in emsp.BuiltFrom.BannerLines())
+                foreach (var line in emsp.Banner(
+                                         OfTheKind: [
+                                             ("OCPI party",     $"{emsp.PartyIdText} ({emsp.BusinessDetails.Name})"),
+                                             ("OCPI versions",  $"{emsp.OCPIVersionsURL} ({String.Join(", ", emsp.OCPIVersions.Select(version => version.Label))})"),
+                                             ("roaming",        $"{emsp.RemotePartyCount} partner(s), {emsp.TokenCount} token(s) in {emsp.OCPIDirectory}"),
+                                             ("MO root",        $"{emsp.ContractCA.RootTrustPath}{(emsp.ContractCA.WasCreated ? " (made just now)" : "")}"),
+                                             ("contracts",      $"{emsp.ContractCount} issued, {emsp.ContractValidity.TotalDays:F0} days each, in {emsp.Contracts.Directory}"),
+                                             ("drivers",        emsp.SelfSignUpEnabled
+                                                                    ? $"sign up at {emsp.SignUpURL}"
+                                                                    : "sign-up switched off; accounts are made by an administrator")
+                                         ]))
                     Console.WriteLine(line);
-
-                Console.WriteLine($"  configuration  {emsp.ConfigFile.Path}");
-                Console.WriteLine($"  log files      {emsp.LogPath ?? "none (--no-log-file)"}");
-                Console.WriteLine($"  accounts       {emsp.ExtAPI.Users.Count()} user(s) in {emsp.AccountsPath}");
-                Console.WriteLine($"  sign in at     {emsp.WebInterfaceURL}{Provider.ExtAPIPath.ToString().Trim('/')}/login");
-                Console.WriteLine($"  OCPI party     {emsp.PartyIdText} ({emsp.BusinessDetails.Name})");
-                Console.WriteLine($"  OCPI versions  {emsp.OCPIVersionsURL} ({String.Join(", ", emsp.OCPIVersions.Select(version => version.Label))})");
-                Console.WriteLine($"  roaming        {emsp.RemotePartyCount} partner(s), {emsp.TokenCount} token(s) in {emsp.OCPIDirectory}");
-                Console.WriteLine($"  certificates   {emsp.Certificates.Entries.Count} in {emsp.Certificates.Directory}");
-                Console.WriteLine($"  MO root        {emsp.ContractCA.RootTrustPath}{(emsp.ContractCA.WasCreated ? " (made just now)" : "")}");
-                Console.WriteLine($"  contracts      {emsp.ContractCount} issued, {emsp.ContractValidity.TotalDays:F0} days each, in {emsp.Contracts.Directory}");
-                Console.WriteLine($"  drivers        {(emsp.SelfSignUpEnabled ? $"sign up at {emsp.SignUpURL}" : "sign-up switched off; accounts are made by an administrator")}");
-                Console.WriteLine($"  name servers   {(emsp.DNSEnabled ? String.Join(", ", emsp.DNSClient.DNSServers) : "switched off")}");
-
-                #region The time servers
-
-                var bands = emsp.TimeSources.Bands();
-                var asked = bands.SelectMany(band => band).ToArray();
-
-                // The group's one server where it has one, and trimmed as the
-                // servers of a longer list are below: this used to be the host of
-                // the single client the detailed test starts from, with its root
-                // dot, which only showed with a group of one.
-                if (asked.Length <= 1)
-                    Console.WriteLine($"  time server    {(asked.Length == 1 ? asked[0].Hostname : emsp.NTSClient.Hostname).Trimmed}{(emsp.NTSEnabled ? "" : " (switched off)")}");
-
-                else
-                {
-
-                    // One line per band, because a band is the unit that is
-                    // asked at once - putting two bands on one line would read
-                    // as six equal servers when it is two and then four. The
-                    // names as they are read, without the root's dot, as the log
-                    // names them.
-                    for (var i = 0; i < bands.Count; i++)
-                        Console.WriteLine((i == 0 ? "  time servers   " : "                 ") +
-                                          String.Join(", ", bands[i].Select(source => source.Hostname.Trimmed)) +
-                                          (bands.Count > 1 ? $"   (priority {bands[i][0].Priority})" : ""));
-
-                    Console.WriteLine($"                 at least {emsp.TimeSources.MinServers} of them must answer" +
-                                      (emsp.NTSEnabled ? "" : " - and NTS is switched off"));
-
-                }
-
-                #endregion
-
-                if (emsp.GeneratedPassword is not null)
-                {
-                    Console.WriteLine();
-                    Console.WriteLine("  ┌─ First start: there were no accounts, so one was made up for you ─────────");
-                    Console.WriteLine($"  │  user      {Provider.DefaultAdminUser}");
-                    Console.WriteLine($"  │  password  {emsp.GeneratedPassword}");
-                    // Named rather than called "a hash", and read from the
-                    // implementation rather than typed here, so the box cannot
-                    // end up describing a scheme this EMSP no longer uses.
-                    // "i=600000" is also how passwords.db writes it down, which
-                    // is where somebody checking this will look.
-                    Console.WriteLine($"  │  It is shown here once and kept only as a {SecurePassword.PBKDF2SHA256} hash");
-                    Console.WriteLine($"  │  over {SecurePassword.DefaultIterations} iterations. Write it down.");
-                    Console.WriteLine("  └───────────────────────────────────────────────────────────────────────────");
-                }
-
-                Console.WriteLine();
 
                 #endregion
 

@@ -85,7 +85,8 @@ the configuration file may say, is in [libs/EMSP](libs/EMSP).
 `dotnet run --project EMSPCLI -- --help` lists the rest: `--port`, `--any`,
 `--accounts <dir>`, `--frontend <dir>`, `--config <file>`, `--verbose`,
 `--quiet`, `--no-trace`, `--log-file <dir>`, `--no-log-file`, and the four
-of the certificate store below.
+of the certificate store below. They are every node's switches, read by
+WWCP_Node, as is what the console says once the EMSP is up.
 
 While working on the web interface, run `npm run watch` in
 `libs/EMSP/EMSP/Frontend` and start the EMSP with `--frontend
@@ -188,9 +189,10 @@ A root is believed as soon as it is in - a TLS root or a server certificate for
 every use, until the Certificates page says what it is for.
 `--list-certificates` prints every handle, and for a TLS root or a server
 certificate what it is kept for; `--certificates <dir>` points the EMSP at
-another store. PEM, DER and PKCS#12 all go in, and a protected PKCS#12 is
-opened with `--certificate-password <pw>` or, better, `EMSP_CERT_PASSWORD` -
-once, and the password is not kept.
+another store, a relative directory measured from where the EMSP is started.
+PEM, DER and PKCS#12 all go in, and a protected PKCS#12 is opened with
+`--certificate-password <pw>` or, better, `EMSP_CERT_PASSWORD` - once, and
+the password is not kept.
 
 The store holds private keys **unencrypted**: a PKCS#12 is opened with its
 password once, at import, and written back without one. The file system is
