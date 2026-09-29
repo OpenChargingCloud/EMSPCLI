@@ -19,10 +19,10 @@
 
 using System.Reflection;
 
-// By their full names, because inside cloud.charging.open.EMSP both words are
-// taken: "CLI" is the namespace this program lives in, and "EMSP" is the
+using cloud.charging.open.protocols.WWCP.Node.CommandLine;
+
+// By its full name, because inside cloud.charging.open.EMSP "EMSP" is the
 // namespace rather than the class.
-using StyxCLI  = org.GraphDefined.Vanaheimr.CLI.CLI;
 using Provider = cloud.charging.open.EMSP.EMSP;
 
 #endregion
@@ -34,19 +34,16 @@ namespace cloud.charging.open.EMSP.CommandLine
     /// The command line of a running EMSP.
     /// </summary>
     /// <remarks>
-    /// Everything a command needs is reachable from here, which is why every
-    /// command takes one of these: the EMSP itself, and through it its
-    /// configuration, its log and everything the JSON API can do. A command is
-    /// a second way of asking for the same thing as the web interface - never
-    /// an implementation of its own.
-    ///
-    /// Commands are not listed anywhere. The constructor asks Styx to walk this
-    /// assembly for anything that implements ICLICommand and can be built from
-    /// a ProviderCLI, so a new command is a new file and nothing else. The
-    /// vehicle's VehicleCLI and the charging station's StationCLI work the same
-    /// way.
+    /// The node's command line, with the commands every node has - syncNTS
+    /// among them - and the console until 'quit', Ctrl+C or SIGTERM. What only
+    /// an EMSP can be told is a command built from a ProviderCLI in this
+    /// assembly, found as the node's are: a new command is a new file and
+    /// nothing else. Everything it needs is reachable from here - the EMSP
+    /// itself, and through it its configuration, its log and everything the
+    /// JSON API can do - for a command is a second way of asking for the same
+    /// thing as the web interface, never an implementation of its own.
     /// </remarks>
-    public class ProviderCLI : StyxCLI
+    public class ProviderCLI : NodeCLI
     {
 
         #region Data
@@ -77,7 +74,7 @@ namespace cloud.charging.open.EMSP.CommandLine
         public ProviderCLI(Provider           EMSP,
                            params Assembly[]  AssembliesWithCLICommands)
 
-            : base(AssembliesWithCLICommands)
+            : base(EMSP, AssembliesWithCLICommands)
 
         {
 

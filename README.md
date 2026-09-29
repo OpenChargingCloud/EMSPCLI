@@ -144,7 +144,8 @@ where it was. A line wider than the console is shown through a window onto it.
 
 Where there is no terminal - from a script, under a service manager, in CI, or
 with the output going into a file or through `| tee` - there is no prompt, and
-the EMSP runs until it is stopped, exactly as it did before.
+the EMSP runs until it is stopped: by Ctrl+C, or by the SIGTERM a service
+manager stops it with, which shuts it down just as Ctrl+C does.
 
 
 ### Certificates
@@ -202,7 +203,7 @@ administrators', unless the configuration file says otherwise.
 
 | | |
 |---|---|
-| `EMSPCLI/` | the command line: switches, what the console says at a start, and the prompt with its commands in `CLI/` |
+| `EMSPCLI/` | the command line: switches, what the console says at a start, and the prompt in `CLI/` - the node's, with the commands every node has, `syncNTS` among them |
 | `libs/EMSP/EMSP/` | the EMSP itself - its sections of the configuration file, its roles, its routes on the node's JSON API, its OCPI bindings, its web interface |
 | `libs/EMSP/EMSP/Frontend/` | the web interface: TypeScript and SCSS, bundled by webpack |
 | `libs/EMSP/EMSP/Contracts/` | the MO root and its sub-CAs, the signing of contracts, the eMAID and its check digit |
