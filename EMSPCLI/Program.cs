@@ -40,8 +40,9 @@ namespace cloud.charging.open.EMSP.CLI
     /// What every kind of node's program does is the node's: the switches and
     /// the words -h explains them with, why it could not be set up or could not
     /// start, what goes into the certificate store, the banner and the prompt.
-    /// What is left here is the EMSP's: what its configuration holds, where its
-    /// contracts are, and what its banner says of OCPI and of the contracts.
+    /// What is left here is the EMSP's: what its configuration holds, which of
+    /// its certificates it uses, where its contracts are, and what its banner
+    /// says of OCPI and of the contracts.
     /// </remarks>
     public class Program
     {
@@ -49,8 +50,8 @@ namespace cloud.charging.open.EMSP.CLI
         #region (private static) Usage
 
         /// <summary>
-        /// What -h shows: every node's switches, in an EMSP's words, and where
-        /// its contracts are.
+        /// What -h shows: every node's switches, in an EMSP's words, which of
+        /// its certificates it uses, and where its contracts are.
         /// </summary>
         private static readonly NodeUsage Usage = new (
 
@@ -68,6 +69,8 @@ namespace cloud.charging.open.EMSP.CLI
                                $"of its own below {Provider.OCPIDirectoryName}/ beside it, where the web interface puts them.",
 
             CertificateKinds:   Provider.StoredCertificateKinds,
+            CertificatesSays:   "v2gRoot, moRoot, oemRoot, clientRoot and tlsIdentity are kept, and used by nothing here yet: " +
+                                "no chain is checked against those roots, and nothing presents the identity.",
 
             BeforeTheLog:       [
                                     "Contracts:",
