@@ -19,6 +19,8 @@
 
 using System.Reflection;
 
+using org.GraphDefined.Vanaheimr.CLI;
+
 using cloud.charging.open.protocols.WWCP.Node.CommandLine;
 
 // By its full name, because inside cloud.charging.open.EMSP "EMSP" is the
@@ -75,6 +77,29 @@ namespace cloud.charging.open.EMSP.CommandLine
                            params Assembly[]  AssembliesWithCLICommands)
 
             : base(EMSP, AssembliesWithCLICommands)
+
+        {
+
+            this.EMSP = EMSP;
+
+            RegisterCLIType(typeof(ProviderCLI));
+
+        }
+
+        /// <summary>
+        /// Create the command line of the given Provider on the given terminal,
+        /// for the given caller - a session over SSH.
+        /// </summary>
+        /// <param name="EMSP">The running Provider.</param>
+        /// <param name="Terminal">What the command line is typed at and written on.</param>
+        /// <param name="Caller">Who is typing at it.</param>
+        /// <param name="AssembliesWithCLICommands">Further assemblies to search for commands. This one and the node's are searched either way.</param>
+        public ProviderCLI(Provider           EMSP,
+                           ICLITerminal       Terminal,
+                           CLICaller          Caller,
+                           params Assembly[]  AssembliesWithCLICommands)
+
+            : base(EMSP, Terminal, Caller, AssembliesWithCLICommands)
 
         {
 

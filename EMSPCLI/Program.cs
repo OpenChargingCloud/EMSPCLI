@@ -129,7 +129,8 @@ namespace cloud.charging.open.EMSP.CLI
                            CertificatesPath:  arguments.CertificatesPath,
                            ConsoleLogLevel:   arguments.ConsoleLogLevel,
                            LogPath:           arguments.LogPathBelow(root),
-                           BridgeDebugLog:    !arguments.NoTrace
+                           BridgeDebugLog:    !arguments.NoTrace,
+                           SSH:               arguments.SSH
                        );
             }
             catch (Exception e)
@@ -139,6 +140,10 @@ namespace cloud.charging.open.EMSP.CLI
 
             await using (emsp)
             {
+
+                // What somebody signed in over SSH gets: this program's own command
+                // line, with its commands beside the node's.
+                emsp.CommandLines = (terminal, caller) => new ProviderCLI(emsp, terminal, caller);
 
                 if (emsp.ImportCertificates(arguments, out _) is Int32 notImported)
                     return notImported;
