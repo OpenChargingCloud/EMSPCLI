@@ -143,11 +143,17 @@ jobs:
       # that belongs in a workspace whose cleanliness the build stamps into
       # every assembly it produces.
       #
-      # Two questions are asked of it. "/" must come back as the embedded web
+      # Three questions are asked of it. "/" must come back as the embedded web
       # interface, which is what proves the bundle is inside the assembly.
       # "/api/v1/status" must come back 401, because the JSON API of an EMSP is
       # nobody's business until somebody has signed in — a 200 there would mean
-      # the door had come off.
+      # the door had come off. And its SSH server must answer with its version.
+      #
+      # The SSH port is given, not left to the default of the web port plus
+      # 20000: 38124 lies in the range Linux hands out to outgoing connections
+      # (32768-60999), and in run 37132802530 it was taken, so that the EMSP -
+      # rightly - would not start. 22124 is below that range, below Windows'
+      # (from 49152), and clear of the defaults 22347-22353.
       - name: The EMSP starts and answers (Debian)
         if: matrix.leg == 'debian-13-container'
         timeout-minutes: 5
@@ -157,6 +163,7 @@ jobs:
           tmp="$(mktemp -d)"
           dotnet EMSPCLI/bin/Release/net10.0/EMSPCLI.dll \
               --port      18124 \
+              --ssh-port  22124 \
               --accounts  "$tmp/accounts" \
               --config    "$tmp/configuration.json" \
               --log-file  "$tmp/logs" \
@@ -183,6 +190,11 @@ jobs:
           api="$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:18124/api/v1/status 2>/dev/null || true)"
           api="${api:-000}"
 
+          # An SSH server speaks first: the line it sends on being connected to
+          # is its version, and one that begins "SSH-2.0-" is the EMSP's command
+          # line ready for somebody to sign in. Asked while it is still running.
+          ssh_banner="$(timeout 5 bash -c 'exec 3<>/dev/tcp/127.0.0.1/22124 && head -n 1 <&3' 2>/dev/null | tr -d '\r' || true)"
+
           running=0
           kill -0 "$pid" 2>/dev/null && running=1
 
@@ -191,6 +203,7 @@ jobs:
 
           echo "GET /                -> $root"
           echo "GET /api/v1/status   -> $api"
+          echo "SSH 22124            -> ${ssh_banner:-nothing}"
 
           # What the banner says this was built from - in every run, not only a
           # red one, because a stamp that reads "unknown" or "-dirty" is worth
@@ -209,6 +222,10 @@ jobs:
               echo "The JSON API answered $api where 401 was expected: it is supposed to be shut to anyone not signed in."
               fault=1
           fi
+          case "$ssh_banner" in
+              SSH-2.0-*) ;;
+              *) echo "The SSH server did not answer on 22124."; fault=1 ;;
+          esac
 
           if [ "$fault" != 0 ]; then
               echo
