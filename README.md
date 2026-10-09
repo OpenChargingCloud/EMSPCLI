@@ -56,7 +56,8 @@ in `libs/EMSP/EMSP/Frontend/dist`.
 
 At the first start there are no accounts, so the EMSP makes one up for the user
 `root`, keeps its hash with the other accounts below `accounts/` beside the
-solution and prints the password once. Then open http://127.0.0.1:2355/ and
+solution and prints the password once. Then open http://127.0.0.1:2355/ - a
+welcome that shows a driver the way to sign up and `root` the way in - and
 sign in. Signing in happens at Hermod's HTTPExt API, mounted under `/ext` - the
 same door the other components use, which is what lets one sign-in cover
 several of them when they share a server. What an account may do there is a
@@ -92,6 +93,17 @@ its two sub-CAs are made at the first start and kept below `pki/` beside the
 solution, together with every contract issued; the console names the file to
 hand out at every start. How this works, and what a `contracts` section of
 the configuration file may say, is in [libs/EMSP](libs/EMSP).
+
+A driver lands in the organization `EVDrivers`, apart from `root`'s, and
+finds their own pages in the menu: **Charging** - the sessions and charge
+detail records the partners pushed with one of their cards or contracts in
+them - **RFID cards**, **Contracts** and **Profile**. A card a driver enters
+by its UID charges once the operator lets it in on the same RFID cards page,
+as a token on every OCPI version; its driver may block it and remove it. On
+the Profile page a driver changes their name, e-mail address and password,
+and deletes their account, their contracts and cards with it. The cards are
+kept in `cards/index.json` beside the solution; see
+[libs/EMSP](libs/EMSP#drivers-their-organization-their-cards-what-they-charged).
 
 `dotnet run --project EMSPCLI -- --help` lists the rest: `--port`, `--any`,
 `--accounts <dir>`, `--frontend <dir>`, `--config <file>`, `--verbose`,

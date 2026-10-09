@@ -283,6 +283,11 @@ configuration.json
 # and never of the source.
 /pki/
 
+# The RFID cards the drivers brought, whose they are and where they stand:
+# kept beside the configuration, a record of this installation's customers
+# and never of the source.
+/cards/
+
 # The certificate store of the node below the EMSP, beside the configuration:
 # whatever is imported there arrives with its private key. Anchored like the
 # accounts - and ignored rather than merely left untracked, because the build
