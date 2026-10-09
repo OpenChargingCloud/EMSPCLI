@@ -168,6 +168,14 @@ loopback, or every address with `--any`. Nothing else is: no shell of the
 machine, no files, no tunnels. `--ssh-port` moves it, `--no-ssh` switches it
 off.
 
+**Configuration > SSH server** does the same while the EMSP runs, at once -
+switched on or off, its port, whether passwords open it - and keeps it in the
+configuration file for the next start; a switch on the command line still wins,
+and the page says so. It shows the host key as a client shows it the first
+time and as a `known_hosts` line, who is connected, and the keys every account
+may sign in with. Reading it is `ssh:read`, changing it `ssh:edit`, which only
+the administrators have.
+
 Whoever signs in is an account of the EMSP, under its name, with a key of its
 own. The first start makes `root`; give it your public key with that very
 start - the way recommended:
