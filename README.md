@@ -105,6 +105,16 @@ and deletes their account, their contracts and cards with it. The cards are
 kept in `cards/index.json` beside the solution; see
 [libs/EMSP](libs/EMSP#drivers-their-organization-their-cards-what-they-charged).
 
+On **Keys & tickets** a driver has long-term account keys certified - made in
+the browser, saved with their certificate as one password-protected file,
+good for two years - and has **charging tickets** signed with them: a CBOR
+COSE_Sign that lets whoever holds the ticket's own key charge at a CPO who
+believes this EMSP, within the ticket's limits, without saying who the driver
+is. The EMSP takes the driver's signature off and signs the ticket itself; a
+CPO believes it by `pki/tickets/ticket_issuer.cert.pem`, which the console
+names at the first start. See
+[libs/EMSP](libs/EMSP#account-keys-and-charging-tickets).
+
 `dotnet run --project EMSPCLI -- --help` lists the rest: `--port`, `--any`,
 `--accounts <dir>`, `--frontend <dir>`, `--config <file>`, `--verbose`,
 `--quiet`, `--no-trace`, `--log-file <dir>`, `--no-log-file`, and the four
