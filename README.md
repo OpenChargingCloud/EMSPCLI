@@ -227,12 +227,13 @@ is signed in.
 Everything this EMSP believes, everything it presents and every server it
 recognises lives in one store, `certificates/` beside the configuration file -
 so beside the solution unless `--config` says otherwise - and is managed on the
-**Certificates** page or from the command line. The store is the directory:
-one file per certificate below it, and an `index.json` recording what a file
-cannot say about itself: what somebody calls it, whether it is switched on
-and - for a TLS root or a server certificate - what it is kept for. So a store
-copied to another machine arrives complete, and a lost index costs labels,
-switches and usages rather than certificates.
+**Certificates** page, certificates alone, and the **Identities** page, who the
+EMSP is as a client with its private key, or from the command line. The store
+is the directory: one file per certificate below it, and an `index.json`
+recording what a file cannot say about itself: what somebody calls it, whether
+it is switched on and - for a TLS root or a server certificate - what it is
+kept for. So a store copied to another machine arrives complete, and a lost
+index costs labels, switches and usages rather than certificates.
 
 A **tlsRoot** says which time server and which name server over TLS or HTTPS
 may be believed, beside the roots of the machine the EMSP runs on - and is told
@@ -249,10 +250,10 @@ server is held to none.
 
 The store keeps the three roots of Plug & Charge as well - `v2gRoot`, `moRoot`
 and `oemRoot`, kept apart because one bag of roots would let an OEM root vouch
-for a contract - and a `clientRoot` and a `tlsIdentity`, which nothing in the
-EMSP uses yet. What only a vehicle holds is refused. The MO root this EMSP
-signs its contracts below is not in the store: it is kept with its private key
-below `pki/`, see above.
+for a contract - and a `clientRoot` and a `tlsIdentity`, who the EMSP is as a
+client, which nothing in the EMSP uses yet. What only a vehicle holds is
+refused. The MO root this EMSP signs its contracts below is not in the store:
+it is kept with its private key below `pki/`, see above.
 
 ```
 dotnet run --project EMSPCLI -- --import-certificate tlsRoot=our-clocks-root.pem --list-certificates
