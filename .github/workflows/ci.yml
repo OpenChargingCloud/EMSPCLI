@@ -72,7 +72,7 @@ jobs:
 
       # The libraries are submodules here, pinned, and testing them as pinned is
       # the point: this repository's own question is whether this particular
-      # combination of thirteen libraries works together. nightly.yml asks the
+      # combination of fourteen libraries works together. nightly.yml asks the
       # other question.
       - uses: actions/checkout@v7
         with:
@@ -132,7 +132,7 @@ jobs:
 
       # The question no unit test in this repository asks: does it start?
       # Everything that only happens at startup happens here — the assemblies of
-      # thirteen libraries resolve, Hermod binds its HTTP server, the HTTPExt API
+      # fourteen libraries resolve, Hermod binds its HTTP server, the HTTPExt API
       # builds an account store out of nothing, the MO root is made, and the web
       # interface turns out to be inside the assembly rather than merely to have
       # been built.

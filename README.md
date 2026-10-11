@@ -318,6 +318,7 @@ administrators', unless the configuration file says otherwise.
 | `libs/EMSP/EMSPTests/` | what an EMSP does when a browser, a driver or a CPO talks to it |
 | `libs/WWCP_Node/` | the node below the EMSP: the log, the configuration file, name resolution and the time, the certificate store, the accounts, the web server and the JSON API every node answers - what an EMSP has in common with a vehicle and a charging station |
 | `libs/WWCP_OCPI/` | the protocol: OCPI 2.1.1, 2.2.1 and 2.3.0 |
+| `libs/WWCP_POI/` | what WWCP_Core and WWCP_OCPI say about charging infrastructure alike: the identifications of operators, pools, stations and EVSEs, their status values, the transparency software |
 | `libs/WWCP_ISO15118/` | the ISO 15118 certificate profiles the MO root is built to |
 | `.github/workflows/` | what runs on every push, and what runs at night |
 
