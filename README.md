@@ -117,9 +117,32 @@ names at the first start. See
 
 `dotnet run --project EMSPCLI -- --help` lists the rest: `--port`, `--any`,
 `--accounts <dir>`, `--frontend <dir>`, `--config <file>`, `--verbose`,
-`--quiet`, `--no-trace`, `--log-file <dir>`, `--no-log-file`, and the four
-of the certificate store below. They are every node's switches, read by
-WWCP_Node, as is what the console says once the EMSP is up.
+`--quiet`, `--no-trace`, `--log-file <dir>`, `--no-log-file`, the four
+of the certificate store below, and HTTPS's `--https`, `--https-cert <file>`,
+`--https-key <file>`, `--redirect-port <number>` and `--trusted-proxy
+<address>`. They are every node's switches, read by WWCP_Node, as is what the
+console says once the EMSP is up.
+
+**`--any` puts the sign-in on the network.** The CPOs need the EMSP beyond the
+loopback for OCPI, and with it come the password, the API keys and the session
+cookie - in the clear, unless the EMSP speaks HTTPS itself or a proxy in front
+of it does and is named as trusted, both in the `web` section of the
+configuration file. Behind nginx:
+
+```json
+"web": { "trustedProxies": [ "127.0.0.1", "::1" ] }
+```
+
+With certbot's files and no proxy:
+
+```json
+"web": { "tls": { "certificate": { "fullchain": "/etc/letsencrypt/live/emsp.example.org/fullchain.pem",
+                                   "privateKey": "/etc/letsencrypt/live/emsp.example.org/privkey.pem" },
+                  "redirectPort": 80 } }
+```
+
+Neither said, the EMSP warns in its log, below its banner and above every page
+of its web interface to its administrators. WWCP_Node's README says the rest.
 
 While working on the web interface, run `npm run watch` in
 `libs/EMSP/EMSP/Frontend` and start the EMSP with `--frontend
