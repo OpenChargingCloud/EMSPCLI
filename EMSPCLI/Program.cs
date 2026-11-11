@@ -142,10 +142,6 @@ namespace cloud.charging.open.EMSP.CLI
             await using (emsp)
             {
 
-                // What somebody signed in over SSH gets: this program's own command
-                // line, with its commands beside the node's.
-                emsp.CommandLines = (terminal, caller) => new ProviderCLI(emsp, terminal, caller);
-
                 if (emsp.ImportCertificates(arguments, out _) is Int32 notImported)
                     return notImported;
 
@@ -176,7 +172,7 @@ namespace cloud.charging.open.EMSP.CLI
 
                 // The node's: a prompt where somebody can type, and waiting
                 // where nobody can, with the log sharing the screen.
-                await new ProviderCLI(emsp).RunUntilStopped();
+                await new EMSPCLI(emsp).RunUntilStopped();
 
                 #endregion
 

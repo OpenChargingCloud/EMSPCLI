@@ -49,7 +49,7 @@ dotnet build EMSPCLI.slnx
 dotnet run --project EMSPCLI
 ```
 
-The build needs the .NET 10 SDK and Node.js: the web interface is built by npm
+The build needs the .NET 11 SDK and Node.js: the web interface is built by npm
 and embedded into the assembly, so the EMSP is one thing to deploy. `dotnet
 build -p:SkipFrontendBuild=true` leaves the npm step out and reuses whatever is
 in `libs/EMSP/EMSP/Frontend/dist`.
@@ -334,8 +334,8 @@ administrators', unless the configuration file says otherwise.
 
 | | |
 |---|---|
-| `EMSPCLI/` | the command line: switches, what the console says at a start, and the prompt in `CLI/` - the node's, with the commands every node has, `syncNTS` among them |
-| `libs/EMSP/EMSP/` | the EMSP itself - its sections of the configuration file, its roles, its routes on the node's JSON API, its OCPI bindings, its web interface |
+| `EMSPCLI/` | the program: switches, what the console says at a start, and the EMSP's prompt until 'quit' |
+| `libs/EMSP/EMSP/` | the EMSP itself - its sections of the configuration file, its roles, its routes on the node's JSON API, its OCPI bindings, its web interface, and its command line in `CommandLine/`: the node's, with the commands every node has, `syncNTS` among them, the same at the console and over SSH |
 | `libs/EMSP/EMSP/Frontend/` | the web interface: TypeScript and SCSS, bundled by webpack |
 | `libs/EMSP/EMSP/Contracts/` | the MO root and its sub-CAs, the signing of contracts, the eMAID and its check digit |
 | `libs/EMSP/EMSPTests/` | what an EMSP does when a browser, a driver or a CPO talks to it |
@@ -345,8 +345,8 @@ administrators', unless the configuration file says otherwise.
 | `libs/WWCP_ISO15118/` | the ISO 15118 certificate profiles the MO root is built to |
 | `.github/workflows/` | what runs on every push, and what runs at night |
 
-The command line is this program's vocabulary and nothing else. What an EMSP
-*is*, and what it does, lives in `libs/EMSP`.
+The program is switches and a start, and nothing else. What an EMSP *is*,
+what it does and what it can be told at its prompt lives in `libs/EMSP`.
 
 
 ### Your participation
