@@ -51,6 +51,7 @@
     <Project Path="libs/Hermod/HermodTests/HermodTests.csproj" />
     <Project Path="libs/MCP/MCP/MCP.csproj" />
     <Project Path="libs/Norn/Norn/Norn.csproj" />
+    <Project Path="libs/Norn/NornCLI/NornCLI.csproj" />
     <Project Path="libs/Norn/NornTests/NornTests.csproj" />
     <Project Path="libs/Styx/Styx/Styx.csproj" />
     <Project Path="libs/Styx/StyxTests/StyxTests.csproj" />
