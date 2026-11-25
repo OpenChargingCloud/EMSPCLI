@@ -1,5 +1,7 @@
 # EMSP - E-Mobility Service Provider
 
+![The EV charging test environment, the EMSP (EMSP) highlighted](docs/EVChargingTestEnvironment.svg)
+
 [![CI](https://github.com/OpenChargingCloud/EMSPCLI/actions/workflows/ci.yml/badge.svg)](https://github.com/OpenChargingCloud/EMSPCLI/actions/workflows/ci.yml)
 [![Nightly](https://github.com/OpenChargingCloud/EMSPCLI/actions/workflows/nightly.yml/badge.svg)](https://github.com/OpenChargingCloud/EMSPCLI/actions/workflows/nightly.yml)
 
